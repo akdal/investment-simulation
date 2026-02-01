@@ -304,9 +304,9 @@ export function RoundEditor({
     }, [round.investments]);
 
     return (
-        <div className="w-[360px] bg-white border-l border-slate-200 flex flex-col h-full flex-shrink-0">
+        <div className="w-[360px] bg-slate-50 border-l border-slate-200 flex flex-col h-full flex-shrink-0">
             {/* 헤더 */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-gradient-to-r from-blue-50/80 to-slate-50">
                 <h2 className="font-bold text-lg">라운드 정보 입력</h2>
                 <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
                     <X className="h-5 w-5 text-slate-400" />

@@ -374,68 +374,66 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-slate-50 font-sans text-slate-900">
       {/* 상단 바 */}
-      <div className="bg-white border-b border-slate-200 flex-shrink-0">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 flex-shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* 시뮬레이션 패널 토글 버튼 */}
             <button
               onClick={() => setIsSimPanelOpen(!isSimPanelOpen)}
-              className={`p-2 rounded-lg transition-colors ${isSimPanelOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-slate-100 text-slate-500'}`}
+              className={`p-2 rounded-lg transition-colors ${isSimPanelOpen ? 'bg-slate-700 text-blue-400' : 'hover:bg-slate-700/50 text-slate-400'}`}
               title={isSimPanelOpen ? '시뮬레이션 목록 닫기' : '시뮬레이션 목록 열기'}
             >
               {isSimPanelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
             </button>
 
-            <div className="h-6 w-px bg-slate-200" />
+            <div className="h-6 w-px bg-slate-700" />
 
-            <h1 className="text-xl font-bold">투자 시뮬레이터</h1>
+            <h1 className="text-xl font-bold text-white">투자 시뮬레이터</h1>
 
             {/* 현재 시뮬레이션 이름 표시 */}
             {currentSim && (
               <>
-                <div className="h-6 w-px bg-slate-200" />
-                <span className="text-slate-500 text-sm">{currentSim.name}</span>
+                <div className="h-6 w-px bg-slate-700" />
+                <span className="text-slate-400 text-sm">{currentSim.name}</span>
               </>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={() => setIsGroupPanelOpen(!isGroupPanelOpen)}
-              className={`h-8 ${isGroupPanelOpen ? 'bg-blue-50 border-blue-200' : ''}`}
+              className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isGroupPanelOpen ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
             >
               <Users className="h-3.5 w-3.5 mr-1.5" />
               투자자 관리
-            </Button>
+            </button>
 
-            <div className="h-6 w-px bg-slate-200" />
+            <div className="h-6 w-px bg-slate-700" />
 
-            <Button variant="outline" size="sm" onClick={handleExport} className="h-8" title="JSON 파일로 내보내기">
+            <button onClick={handleExport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일로 내보내기">
               <Download className="h-3.5 w-3.5 mr-1.5" />
               내보내기
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleImport} className="h-8" title="JSON 파일 가져오기">
+            </button>
+            <button onClick={handleImport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일 가져오기">
               <Upload className="h-3.5 w-3.5 mr-1.5" />
               가져오기
-            </Button>
+            </button>
 
-            <div className="h-6 w-px bg-slate-200" />
+            <div className="h-6 w-px bg-slate-700" />
 
-            <Button variant="outline" size="sm" onClick={handleManualSave} className="h-8">
+            <button onClick={handleManualSave} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors">
               <Save className="h-3.5 w-3.5 mr-1.5" />
               저장
-            </Button>
+            </button>
 
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              {saveStatus === 'saving' && <span className="text-blue-500">저장 중...</span>}
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              {saveStatus === 'saving' && <span className="text-blue-400">저장 중...</span>}
               {saveStatus === 'saved' && (
-                <span className="text-green-500 flex items-center gap-1">
+                <span className="text-emerald-400 flex items-center gap-1">
                   <Check className="h-3 w-3" /> 저장됨
                 </span>
               )}
-              {!saveStatus && <span>자동 저장</span>}
+              {!saveStatus && <span className="text-slate-500">자동 저장</span>}
             </div>
           </div>
         </div>
@@ -532,9 +530,9 @@ function SimulationPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
-    <div className="w-[280px] bg-white border-r border-slate-200 flex flex-col h-full flex-shrink-0">
+    <div className="w-[280px] bg-slate-50 border-r border-slate-200 flex flex-col h-full flex-shrink-0">
       {/* 헤더 */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+      <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-100/80">
         <h2 className="font-bold text-lg">시뮬레이션</h2>
         <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
           <X className="h-5 w-5 text-slate-400" />
@@ -728,8 +726,8 @@ function InvestorPanel({
   };
 
   return (
-    <div className="w-[320px] bg-white border-l border-slate-200 flex flex-col h-full flex-shrink-0">
-      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+    <div className="w-[320px] bg-slate-50 border-l border-slate-200 flex flex-col h-full flex-shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-gradient-to-r from-indigo-50/80 to-slate-50">
         <h2 className="font-bold text-lg">투자자 관리</h2>
         <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
           <X className="h-5 w-5 text-slate-400" />

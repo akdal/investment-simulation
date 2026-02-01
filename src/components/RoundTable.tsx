@@ -122,13 +122,13 @@ export function RoundTable({
     }
 
     return (
-        <div className="h-full overflow-auto p-6">
+        <div className="h-full overflow-auto p-6 bg-gradient-to-b from-white to-slate-50/50">
             <div className="min-w-fit">
                 <table className="w-full border-collapse text-sm">
                     <thead>
                         {/* 라운드 헤더 */}
-                        <tr>
-                            <th className="w-[200px] min-w-[200px] py-4 border-b border-slate-200"></th>
+                        <tr className="border-b border-slate-200">
+                            <th className="w-[200px] min-w-[200px] py-4"></th>
                             {rounds.map((round) => {
                                 const roundDate = round.date ? new Date(round.date) : null;
                                 const dateStr = roundDate
@@ -138,11 +138,10 @@ export function RoundTable({
                                     <th
                                         key={round.id}
                                         onClick={() => onSelectRound(round.id)}
-                                        className={`w-[200px] min-w-[200px] px-2 py-4 text-center cursor-pointer transition-all duration-150 border-b border-slate-200 border-l border-slate-200 ${
-                                            selectedRoundId === round.id
-                                                ? 'bg-blue-50/60 shadow-[inset_0_-2px_0_0_theme(colors.blue.500)]'
-                                                : 'hover:bg-slate-50'
-                                        }`}
+                                        className={`w-[200px] min-w-[200px] px-2 py-4 text-center cursor-pointer transition-all duration-150 border-l border-slate-200 ${selectedRoundId === round.id
+                                            ? 'bg-blue-50/60 shadow-[inset_0_-2px_0_0_theme(colors.blue.500)]'
+                                            : 'hover:bg-slate-50'
+                                            }`}
                                     >
                                         <div className={`font-bold transition-colors duration-150 ${selectedRoundId === round.id ? 'text-blue-600' : 'text-slate-900'}`}>{round.name}</div>
                                         {dateStr && (
@@ -151,7 +150,7 @@ export function RoundTable({
                                     </th>
                                 );
                             })}
-                            <th className="w-[60px] min-w-[60px] py-4 border-b border-slate-200 border-l border-slate-200">
+                            <th className="w-[60px] min-w-[60px] py-4 border-l border-slate-200">
                                 <button
                                     onClick={onAddRound}
                                     className="mx-auto flex items-center justify-center w-7 h-7 rounded border border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-50 transition-colors"
@@ -159,16 +158,16 @@ export function RoundTable({
                                     <Plus className="h-4 w-4 text-slate-400" />
                                 </button>
                             </th>
-                            <th className="w-[200px] min-w-[200px] py-4 border-b border-slate-200 border-l border-slate-200 border-r border-slate-200 text-center">
+                            <th className="w-[120px] min-w-[120px] py-4 border-l border-slate-200 border-r border-slate-200 text-center">
                                 <div className="font-bold text-slate-900">요약</div>
                                 <div className="text-xs font-normal text-slate-400 mt-0.5">Summary</div>
                             </th>
-                            <th className="w-auto border-b border-slate-200 border-r border-slate-200"></th>
+                            <th className="w-auto border-r border-slate-200"></th>
                         </tr>
 
                         {/* 라운드 요약 정보 */}
-                        <tr className="bg-slate-50 text-sm">
-                            <th className="p-2 text-left text-slate-900 font-normal">프리머니</th>
+                        <tr className="bg-white text-sm">
+                            <th className="p-2 text-left text-slate-900 font-bold sticky left-0 bg-white z-10">프리머니</th>
                             {rounds.map((round, roundIdx) => {
                                 // 직전 라운드 대비 배수 계산
                                 const prevRound = roundIdx > 0 ? rounds[roundIdx - 1] : null;
@@ -183,80 +182,88 @@ export function RoundTable({
                                     return rounded % 1 === 0 ? `${rounded}x` : `${rounded.toFixed(1)}x`;
                                 };
 
-                                const isDownRound = multiple !== null && multiple < 1;
+
 
                                 return (
                                     <td
                                         key={round.id}
                                         onClick={() => onSelectRound(round.id)}
-                                        className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${
-                                            selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                        }`}
+                                        className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                            }`}
                                     >
                                         <div className="flex items-center justify-end gap-1.5">
                                             {multiple !== null && (
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                                                    isDownRound
-                                                        ? 'bg-red-100 text-red-600'
-                                                        : 'bg-emerald-100 text-emerald-600'
-                                                }`}>
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${Math.round(multiple * 10) / 10 === 1
+                                                    ? 'bg-slate-50 text-slate-500'
+                                                    : multiple < 1
+                                                        ? 'bg-red-50 text-red-500'
+                                                        : 'bg-emerald-50 text-emerald-500'
+                                                    }`}>
                                                     {formatMultiple(multiple)}
                                                 </span>
                                             )}
-                                            <span>{fmtMoney(round.preMoneyValuation)}</span>
+                                            <span className="font-bold">{fmtMoney(round.preMoneyValuation)}</span>
                                         </div>
                                     </td>
                                 );
                             })}
                             <td className="border-l border-slate-200"></td>
-                            <td className="border-l border-slate-200 border-r border-slate-200 bg-slate-50"></td>
+                            <td className="border-l border-slate-200 border-r border-slate-200 bg-white"></td>
                             <td></td>
                         </tr>
-                        <tr className="bg-slate-50 text-sm">
-                            <th className="p-2 text-left text-slate-900 font-normal">투자금</th>
+                        <tr className="bg-white text-sm">
+                            <th className="p-2 text-left text-slate-900 font-bold sticky left-0 bg-white z-10">투자금</th>
                             {rounds.map(round => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${
-                                        selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                    }`}
+                                    className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                        }`}
                                 >
-                                    <span className="text-xs text-emerald-600">
-                                        +{fmtMoney(round.investmentAmount)}
+                                    <span className={`text-sm font-bold ${round.investmentAmount > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                        {fmtMoney(round.investmentAmount)}
                                     </span>
                                 </td>
                             ))}
                             <td className="border-l border-slate-200"></td>
-                            <td className="border-l border-slate-200 border-r border-slate-200 bg-slate-50"></td>
+                            <td className="p-2 text-right border-l border-slate-200 border-r border-slate-200 bg-white">
+                                <div className="flex flex-col gap-0.5 items-end">
+                                    <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                        <span className="text-[10px] text-slate-400 text-left">누적</span>
+                                        <div className="justify-self-end">
+                                            <span className="text-sm font-bold text-emerald-600">
+                                                {fmtMoney(rounds.reduce((sum, r) => sum + r.investmentAmount, 0))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                             <td></td>
                         </tr>
-                        <tr className="bg-slate-50 text-sm">
-                            <th className="p-2 text-left text-slate-900 font-normal">포스트머니</th>
+                        <tr className="bg-white text-sm">
+                            <th className="p-2 text-left text-slate-900 font-bold sticky left-0 bg-white z-10">포스트머니</th>
                             {rounds.map(round => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${
-                                        selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                    }`}
+                                    className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 font-bold ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                        }`}
                                 >
                                     {fmtMoney(round.postMoneyValuation)}
                                 </td>
                             ))}
                             <td className="border-l border-slate-200"></td>
-                            <td className="border-l border-slate-200 border-r border-slate-200 bg-slate-50"></td>
+                            <td className="border-l border-slate-200 border-r border-slate-200 bg-white"></td>
                             <td></td>
                         </tr>
-                        <tr className="text-sm border-t border-slate-200">
-                            <th className="p-2 text-left text-slate-900 font-normal">주당 가격</th>
+                        <tr className="text-xs border-t border-slate-100">
+                            <th className="p-2 text-left text-slate-900 font-normal sticky left-0 bg-white z-10">주당 가격</th>
                             {rounds.map(round => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${
-                                        selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                    }`}
+                                    className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 text-xs ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                        }`}
                                 >
                                     {fmt(round.sharePrice)}원
                                 </td>
@@ -265,8 +272,8 @@ export function RoundTable({
                             <td className="border-l border-slate-200 border-r border-slate-200"></td>
                             <td></td>
                         </tr>
-                        <tr className="text-sm">
-                            <th className="p-2 text-left text-slate-900 font-normal border-b-2 border-slate-300">총 주식</th>
+                        <tr className="text-xs bg-white border-b border-slate-200">
+                            <th className="p-2 text-left text-slate-900 font-normal sticky left-0 bg-inherit z-10">총 발행주식</th>
                             {rounds.map((round, roundIdx) => {
                                 const capTable = getCapTableAtRound(roundIdx);
                                 const totalShares = capTable.reduce((sum, h) => sum + h.shares, 0);
@@ -274,17 +281,16 @@ export function RoundTable({
                                     <td
                                         key={round.id}
                                         onClick={() => onSelectRound(round.id)}
-                                        className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 border-b-2 border-slate-300 ${
-                                            selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                        }`}
+                                        className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 text-xs ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                            }`}
                                     >
                                         {fmt(totalShares)}주
                                     </td>
                                 );
                             })}
-                            <td className="border-l border-slate-200 border-b-2 border-slate-300"></td>
-                            <td className="border-l border-slate-200 border-r border-slate-200 border-b-2 border-slate-300"></td>
-                            <td className="border-b-2 border-slate-300"></td>
+                            <td className="border-l border-slate-200"></td>
+                            <td className="border-l border-slate-200 border-r border-slate-200"></td>
+                            <td></td>
                         </tr>
                     </thead>
 
@@ -310,23 +316,23 @@ export function RoundTable({
                                     if (capTable.length === 0) return null;
                                     const maxHolding = capTable.reduce((max, h) =>
                                         h.shares > max.shares ? h : max
-                                    , capTable[0]);
+                                        , capTable[0]);
                                     return maxHolding.investorId;
                                 });
 
                                 return investorIds.map((investorId, rowIdx) => {
                                     const investor = investors.find(i => i.id === investorId);
                                     const isEvenRow = rowIdx % 2 === 0;
+                                    const isLastInvestor = rowIdx === investorIds.length - 1;
                                     const summary = getInvestorSummary(investorId);
 
                                     return (
                                         <tr
                                             key={investorId}
-                                            className={`border-b border-slate-100 transition-colors ${
-                                                isEvenRow ? 'bg-white' : 'bg-slate-100/50'
-                                            } hover:bg-blue-50/50`}
+                                            className={`transition-colors ${isLastInvestor ? 'border-b-2 border-slate-300' : 'border-b border-slate-100'} ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'
+                                                } hover:bg-slate-100`}
                                         >
-                                            <td className="p-2 font-medium text-slate-900 sticky left-0 bg-inherit">
+                                            <td className={`p-2 font-medium text-slate-900 sticky left-0 bg-inherit ${isLastInvestor ? 'border-b-2 border-slate-300' : ''}`}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] flex items-center justify-center flex-shrink-0">
                                                         {rowIdx + 1}
@@ -366,9 +372,8 @@ export function RoundTable({
                                                     <td
                                                         key={round.id}
                                                         onClick={() => onSelectRound(round.id)}
-                                                        className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${
-                                                            selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                                        }`}
+                                                        className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                                            }`}
                                                     >
                                                         {shares > 0 || hasActivity ? (
                                                             <div className="space-y-0.5">
@@ -376,30 +381,6 @@ export function RoundTable({
                                                                 <div className={`font-medium ${isMaxShareholder ? 'text-blue-600' : ''}`}>
                                                                     {percentage.toFixed(1)}%
                                                                 </div>
-
-                                                                {/* 신규 투자 */}
-                                                                {newInvestmentShares > 0 && (
-                                                                    <div className="flex items-center justify-end gap-1 text-[10px] text-emerald-600">
-                                                                        {newInvestmentAmount > 0 && <span>+{fmtMoney(newInvestmentAmount)}</span>}
-                                                                        <span>+{fmt(newInvestmentShares)}주</span>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* 구주 매수 */}
-                                                                {secondaryBuyShares > 0 && (
-                                                                    <div className="flex items-center justify-end gap-1 text-[10px] text-violet-600">
-                                                                        <span>-{fmtMoney(secondaryBuyAmount)}</span>
-                                                                        <span>+{fmt(secondaryBuyShares)}주</span>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* 구주 매각 */}
-                                                                {secondarySellShares > 0 && (
-                                                                    <div className="flex items-center justify-end gap-1 text-[10px] text-violet-600">
-                                                                        <span>+{fmtMoney(secondarySellAmount)}</span>
-                                                                        <span>-{fmt(secondarySellShares)}주</span>
-                                                                    </div>
-                                                                )}
 
                                                                 {/* POST 평가금액, 보유주수 */}
                                                                 <div className="flex items-center justify-end gap-1 text-[10px]">
@@ -410,6 +391,42 @@ export function RoundTable({
                                                                         {fmt(shares)}주
                                                                     </span>
                                                                 </div>
+
+                                                                {/* 신규 투자 */}
+                                                                {newInvestmentShares > 0 && (
+                                                                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                                                        <span className={`text-[10px] font-medium whitespace-nowrap ${newInvestmentAmount > 0
+                                                                            ? 'text-emerald-500'
+                                                                            : 'text-slate-400'
+                                                                            }`}>
+                                                                            {newInvestmentAmount > 0 ? `투자 ${fmtMoney(newInvestmentAmount)} (${fmt(newInvestmentShares)}주)` : `${fmt(newInvestmentShares)}주`}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* 구주 매수 */}
+                                                                {secondaryBuyShares > 0 && (
+                                                                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                                                        <span className={`text-[10px] font-medium whitespace-nowrap ${secondaryBuyAmount > 0
+                                                                            ? 'text-amber-500'
+                                                                            : 'text-slate-400'
+                                                                            }`}>
+                                                                            {secondaryBuyAmount > 0 ? `매수 ${fmtMoney(secondaryBuyAmount)} (${fmt(secondaryBuyShares)}주)` : `${fmt(secondaryBuyShares)}주`}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* 구주 매각 */}
+                                                                {secondarySellShares > 0 && (
+                                                                    <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                                                        <span className={`text-[10px] font-medium whitespace-nowrap ${secondarySellAmount > 0
+                                                                            ? 'text-violet-500'
+                                                                            : 'text-slate-400'
+                                                                            }`}>
+                                                                            {secondarySellAmount > 0 ? `매도 ${fmtMoney(secondarySellAmount)} (${fmt(secondarySellShares)}주)` : `${fmt(secondarySellShares)}주`}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <span className="text-slate-300">-</span>
@@ -417,45 +434,53 @@ export function RoundTable({
                                                     </td>
                                                 );
                                             })}
-                                            <td className={`border-l border-slate-200 ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'}`}></td>
+                                            <td className="border-l border-slate-200"></td>
                                             {/* 요약 열 */}
-                                            <td className={`p-2 border-l border-slate-200 border-r border-slate-200 text-right ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'}`}>
+                                            <td className="p-2 border-l border-slate-200 border-r border-slate-200 text-right">
                                                 <div className="flex flex-col gap-0.5 items-end">
                                                     {summary.primaryInvestment > 0 && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="text-[10px] text-slate-400">투자</span>
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">
-                                                                +{fmtMoney(summary.primaryInvestment)}
-                                                            </span>
+                                                        <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                            <span className="text-[10px] text-slate-400 text-left">투자</span>
+                                                            <div className="justify-self-end">
+                                                                <span className="text-[10px] text-emerald-500 font-medium">
+                                                                    {fmtMoney(summary.primaryInvestment)}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {summary.secondaryBuy > 0 && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="text-[10px] text-slate-400">매수</span>
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
-                                                                -{fmtMoney(summary.secondaryBuy)}
-                                                            </span>
+                                                        <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                            <span className="text-[10px] text-slate-400 text-left">매수</span>
+                                                            <div className="justify-self-end">
+                                                                <span className="text-[10px] text-amber-500 font-medium">
+                                                                    {fmtMoney(summary.secondaryBuy)}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {summary.secondarySell > 0 && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="text-[10px] text-slate-400">회수</span>
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
-                                                                +{fmtMoney(summary.secondarySell)}
-                                                            </span>
+                                                        <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                            <span className="text-[10px] text-slate-400 text-left">회수</span>
+                                                            <div className="justify-self-end">
+                                                                <span className="text-[10px] text-violet-500 font-medium">
+                                                                    {fmtMoney(summary.secondarySell)}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {summary.currentValue > 0 && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="text-[10px] text-slate-400">잔액</span>
-                                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-medium">
-                                                                {fmtMoney(Math.round(summary.currentValue))}
-                                                            </span>
+                                                        <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                            <span className="text-[10px] text-slate-400 text-left">보유</span>
+                                                            <div className="justify-self-end">
+                                                                <span className="text-[10px] text-slate-500 font-medium">
+                                                                    {fmtMoney(Math.round(summary.currentValue))}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className={isEvenRow ? 'bg-white' : 'bg-slate-100/50'}></td>
+                                            <td className=""></td>
                                         </tr>
                                     );
                                 });
@@ -538,9 +563,7 @@ export function RoundTable({
                                             return (
                                                 <tr
                                                     key={group.id}
-                                                    className={`transition-colors ${
-                                                        isLastGroup ? 'border-b-2 border-slate-300' : 'border-b border-slate-100'
-                                                    } ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'} hover:bg-blue-50/50`}
+                                                    className={`transition-colors ${isLastGroup ? 'border-b-2 border-slate-300' : 'border-b border-slate-100'} ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'} hover:bg-slate-100`}
                                                 >
                                                     <td className={`p-2 font-medium text-slate-900 sticky left-0 bg-inherit ${isLastGroup ? 'border-b-2 border-slate-300' : ''}`}>
                                                         <div className="flex items-center gap-2">
@@ -585,9 +608,8 @@ export function RoundTable({
                                                             <td
                                                                 key={round.id}
                                                                 onClick={() => onSelectRound(round.id)}
-                                                                className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${
-                                                                    selectedRoundId === round.id ? 'bg-blue-50/50' : ''
-                                                                }`}
+                                                                className={`p-2 text-right cursor-pointer border-l border-slate-200 transition-colors duration-150 ${selectedRoundId === round.id ? 'bg-blue-50/50' : ''
+                                                                    }`}
                                                             >
                                                                 {groupShares > 0 || hasActivity ? (
                                                                     <div className="space-y-0.5">
@@ -595,30 +617,6 @@ export function RoundTable({
                                                                         <div className={`font-medium ${isMaxGroup ? 'text-blue-600' : ''}`}>
                                                                             {percentage.toFixed(1)}%
                                                                         </div>
-
-                                                                        {/* 신규 투자 */}
-                                                                        {groupNewInvestmentShares > 0 && (
-                                                                            <div className="flex items-center justify-end gap-1 text-[10px] text-emerald-600">
-                                                                                {groupNewInvestmentAmount > 0 && <span>+{fmtMoney(groupNewInvestmentAmount)}</span>}
-                                                                                <span>+{fmt(groupNewInvestmentShares)}주</span>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* 구주 매수 */}
-                                                                        {groupSecondaryBuyShares > 0 && (
-                                                                            <div className="flex items-center justify-end gap-1 text-[10px] text-violet-600">
-                                                                                <span>-{fmtMoney(groupSecondaryBuyAmount)}</span>
-                                                                                <span>+{fmt(groupSecondaryBuyShares)}주</span>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* 구주 매각 */}
-                                                                        {groupSecondarySellShares > 0 && (
-                                                                            <div className="flex items-center justify-end gap-1 text-[10px] text-violet-600">
-                                                                                <span>+{fmtMoney(groupSecondarySellAmount)}</span>
-                                                                                <span>-{fmt(groupSecondarySellShares)}주</span>
-                                                                            </div>
-                                                                        )}
 
                                                                         {/* POST 평가금액, 보유주수 */}
                                                                         <div className="flex items-center justify-end gap-1 text-[10px]">
@@ -629,6 +627,42 @@ export function RoundTable({
                                                                                 {fmt(groupShares)}주
                                                                             </span>
                                                                         </div>
+
+                                                                        {/* 신규 투자 */}
+                                                                        {groupNewInvestmentShares > 0 && (
+                                                                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                                                                <span className={`text-[10px] font-medium whitespace-nowrap ${groupNewInvestmentAmount > 0
+                                                                                    ? 'text-emerald-500'
+                                                                                    : 'text-slate-400'
+                                                                                    }`}>
+                                                                                    {groupNewInvestmentAmount > 0 ? `투자 ${fmtMoney(groupNewInvestmentAmount)} (${fmt(groupNewInvestmentShares)}주)` : `${fmt(groupNewInvestmentShares)}주`}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* 구주 매수 */}
+                                                                        {groupSecondaryBuyShares > 0 && (
+                                                                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                                                                <span className={`text-[10px] font-medium whitespace-nowrap ${groupSecondaryBuyAmount > 0
+                                                                                    ? 'text-amber-500'
+                                                                                    : 'text-slate-400'
+                                                                                    }`}>
+                                                                                    {groupSecondaryBuyAmount > 0 ? `매수 ${fmtMoney(groupSecondaryBuyAmount)} (${fmt(groupSecondaryBuyShares)}주)` : `${fmt(groupSecondaryBuyShares)}주`}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* 구주 매각 */}
+                                                                        {groupSecondarySellShares > 0 && (
+                                                                            <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                                                                                <span className={`text-[10px] font-medium whitespace-nowrap ${groupSecondarySellAmount > 0
+                                                                                    ? 'text-violet-500'
+                                                                                    : 'text-slate-400'
+                                                                                    }`}>
+                                                                                    {groupSecondarySellAmount > 0 ? `매도 ${fmtMoney(groupSecondarySellAmount)} (${fmt(groupSecondarySellShares)}주)` : `${fmt(groupSecondarySellShares)}주`}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 ) : (
                                                                     <span className="text-slate-300">-</span>
@@ -636,45 +670,53 @@ export function RoundTable({
                                                             </td>
                                                         );
                                                     })}
-                                                    <td className={`border-l border-slate-200 ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'}`}></td>
+                                                    <td className="border-l border-slate-200"></td>
                                                     {/* 요약 열 */}
-                                                    <td className={`p-2 border-l border-slate-200 border-r border-slate-200 text-right ${isEvenRow ? 'bg-white' : 'bg-slate-100/50'}`}>
+                                                    <td className="p-2 border-l border-slate-200 border-r border-slate-200 text-right">
                                                         <div className="flex flex-col gap-0.5 items-end">
                                                             {groupSummary.primaryInvestment > 0 && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-[10px] text-slate-400">투자</span>
-                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">
-                                                                        +{fmtMoney(groupSummary.primaryInvestment)}
-                                                                    </span>
+                                                                <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                                    <span className="text-[10px] text-slate-400 text-left">투자</span>
+                                                                    <div className="justify-self-end">
+                                                                        <span className="text-[10px] text-emerald-500 font-medium">
+                                                                            {fmtMoney(groupSummary.primaryInvestment)}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                             {groupSummary.secondaryBuy > 0 && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-[10px] text-slate-400">매수</span>
-                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
-                                                                        -{fmtMoney(groupSummary.secondaryBuy)}
-                                                                    </span>
+                                                                <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                                    <span className="text-[10px] text-slate-400 text-left">매수</span>
+                                                                    <div className="justify-self-end">
+                                                                        <span className="text-[10px] text-amber-500 font-medium">
+                                                                            {fmtMoney(groupSummary.secondaryBuy)}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                             {groupSummary.secondarySell > 0 && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-[10px] text-slate-400">회수</span>
-                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
-                                                                        +{fmtMoney(groupSummary.secondarySell)}
-                                                                    </span>
+                                                                <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                                    <span className="text-[10px] text-slate-400 text-left">회수</span>
+                                                                    <div className="justify-self-end">
+                                                                        <span className="text-[10px] text-violet-500 font-medium">
+                                                                            {fmtMoney(groupSummary.secondarySell)}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                             {groupSummary.currentValue > 0 && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-[10px] text-slate-400">잔액</span>
-                                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-medium">
-                                                                        {fmtMoney(Math.round(groupSummary.currentValue))}
-                                                                    </span>
+                                                                <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                                                    <span className="text-[10px] text-slate-400 text-left">보유</span>
+                                                                    <div className="justify-self-end">
+                                                                        <span className="text-[10px] text-slate-500 font-medium">
+                                                                            {fmtMoney(Math.round(groupSummary.currentValue))}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td className={isEvenRow ? 'bg-white' : 'bg-slate-100/50'}></td>
+                                                    <td className=""></td>
                                                 </tr>
                                             );
                                         })}
