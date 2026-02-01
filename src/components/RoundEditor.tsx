@@ -34,7 +34,7 @@ export function RoundEditor({
     onDeleteRound,
     onClose
 }: RoundEditorProps) {
-    // 입력 모드: 주당 발행가격 또는 프리머니
+    // 입력 모드: 주당 가격 또는 프리 머니
     const [inputMode, setInputMode] = useState<InputMode>('sharePrice');
     const [sharePriceInput, setSharePriceInput] = useState(
         round.sharePrice > 0 ? round.sharePrice.toLocaleString() : ''
@@ -57,9 +57,15 @@ export function RoundEditor({
     const handleSharePriceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         handleFormattedNumberInput(e, (numVal, formatted) => {
             setSharePriceInput(formatted);
-            const metrics = calculateRoundMetrics(numVal, previousRoundShares, round.investments);
 
-            // 프리머니 입력값도 동기화
+            // 모든 구주 매매 거래의 pricePerShare도 새 주당 가격으로 업데이트
+            const updatedInvestments = round.investments.map(inv =>
+                inv.isSecondary ? { ...inv, pricePerShare: numVal } : inv
+            );
+
+            const metrics = calculateRoundMetrics(numVal, previousRoundShares, updatedInvestments);
+
+            // 프리 머니 입력값도 동기화
             setPreMoneyInput(metrics.preMoneyValuation > 0 ? metrics.preMoneyValuation.toLocaleString() : '');
 
             onUpdateRound({
@@ -78,9 +84,15 @@ export function RoundEditor({
         handleFormattedNumberInput(e, (numVal, formatted) => {
             setPreMoneyInput(formatted);
 
-            // 프리머니에서 주당 가격 계산
+            // 프리 머니에서 주당 가격 계산
             const sharePrice = previousRoundShares > 0 ? Math.round(numVal / previousRoundShares) : 0;
-            const metrics = calculateRoundMetrics(sharePrice, previousRoundShares, round.investments);
+
+            // 모든 구주 매매 거래의 pricePerShare도 새 주당 가격으로 업데이트
+            const updatedInvestments = round.investments.map(inv =>
+                inv.isSecondary ? { ...inv, pricePerShare: sharePrice } : inv
+            );
+
+            const metrics = calculateRoundMetrics(sharePrice, previousRoundShares, updatedInvestments);
 
             // 주당 가격 입력값도 동기화
             setSharePriceInput(sharePrice > 0 ? sharePrice.toLocaleString() : '');
@@ -170,27 +182,6 @@ export function RoundEditor({
         });
     };
 
-    const toggleSecondary = (invId: string) => {
-        const newInvestments = round.investments.map(inv =>
-            inv.id === invId ? {
-                ...inv,
-                isSecondary: !inv.isSecondary,
-                sellerId: !inv.isSecondary ? undefined : inv.sellerId,
-                shares: 0,
-                amount: 0
-            } : inv
-        );
-        const metrics = calculateRoundMetrics(round.sharePrice, previousRoundShares, newInvestments);
-        onUpdateRound({
-            ...round,
-            preMoneyValuation: metrics.preMoneyValuation,
-            totalNewShares: metrics.totalNewShares,
-            investmentAmount: metrics.investmentAmount,
-            postMoneyValuation: metrics.postMoneyValuation,
-            investments: metrics.updatedInvestments
-        });
-    };
-
     const updateSeller = (invId: string, sellerId: string) => {
         const newInvestments = round.investments.map(inv =>
             inv.id === invId ? { ...inv, sellerId: sellerId || undefined } : inv
@@ -227,8 +218,8 @@ export function RoundEditor({
             amount: 0,
             shares: 0,
             isSecondary: true,
-            sellerId: undefined,
-            pricePerShare: round.sharePrice // 기본값: 라운드 주당 발행가격
+            sellerId: undefined
+            // pricePerShare는 설정하지 않음 - undefined이면 라운드 sharePrice를 따름
         };
         const newInvestments = [...round.investments, newInvestment];
         const metrics = calculateRoundMetrics(round.sharePrice, previousRoundShares, newInvestments);
@@ -247,8 +238,7 @@ export function RoundEditor({
         handleFormattedNumberInput(e, (shares) => {
             const newInvestments = round.investments.map(inv => {
                 if (inv.id === invId) {
-                    const pricePerShare = inv.pricePerShare || round.sharePrice;
-                    return { ...inv, shares, amount: shares * pricePerShare };
+                    return { ...inv, shares };
                 }
                 return inv;
             });
@@ -264,12 +254,13 @@ export function RoundEditor({
         });
     };
 
-    // 구주 매매 주당 가격 변경 핸들러 (금액 자동 계산)
-    const handleSecondaryPricePerShareChange = (invId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    // 구주 매매 주당 가격 변경 핸들러 (같은 그룹 내 모든 거래에 반영)
+    const handleSecondaryPricePerShareChange = (buyerId: string, e: React.ChangeEvent<HTMLInputElement>) => {
         handleFormattedNumberInput(e, (pricePerShare) => {
+            // 같은 매수자(buyerId)의 모든 구주 매매 거래에 동일한 주당 가격 적용
             const newInvestments = round.investments.map(inv => {
-                if (inv.id === invId) {
-                    return { ...inv, pricePerShare, amount: inv.shares * pricePerShare };
+                if (inv.isSecondary && inv.investorId === buyerId) {
+                    return { ...inv, pricePerShare };
                 }
                 return inv;
             });
@@ -304,10 +295,10 @@ export function RoundEditor({
     }, [round.investments]);
 
     return (
-        <div className="w-[360px] bg-slate-50 border-l border-slate-200 flex flex-col h-full flex-shrink-0">
+        <div className="w-[380px] bg-slate-50 border-l border-slate-200 flex flex-col h-full flex-shrink-0">
             {/* 헤더 */}
             <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-gradient-to-r from-blue-50/80 to-slate-50">
-                <h2 className="font-bold text-lg">라운드 정보 입력</h2>
+                <h2 className="font-bold text-lg">라운드 정보</h2>
                 <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
                     <X className="h-5 w-5 text-slate-400" />
                 </button>
@@ -326,7 +317,7 @@ export function RoundEditor({
 
                 {/* 라운드 날짜 */}
                 <div className="space-y-2">
-                    <Label className="font-normal text-slate-500">라운드 시기</Label>
+                    <Label>라운드 시기</Label>
                     <div className="flex gap-2">
                         <select
                             className="flex-1 h-10 px-3 border border-slate-200 rounded-md bg-white text-sm"
@@ -377,7 +368,7 @@ export function RoundEditor({
                                     : 'border-slate-200 hover:border-slate-300'
                             }`}
                         >
-                            주당 발행가격
+                            주당 가격
                         </button>
                         <button
                             onClick={() => setInputMode('preMoney')}
@@ -387,15 +378,15 @@ export function RoundEditor({
                                     : 'border-slate-200 hover:border-slate-300'
                             }`}
                         >
-                            프리머니
+                            프리 머니
                         </button>
                     </div>
                 </div>
 
-                {/* 주당 발행가격 입력 */}
+                {/* 주당 가격 입력 */}
                 {inputMode === 'sharePrice' && (
                     <div className="space-y-2">
-                        <Label>주당 발행가격</Label>
+                        <Label>주당 가격</Label>
                         <div className="relative">
                             <Input
                                 className="pr-8"
@@ -408,10 +399,10 @@ export function RoundEditor({
                     </div>
                 )}
 
-                {/* 프리머니 입력 */}
+                {/* 프리 머니 입력 */}
                 {inputMode === 'preMoney' && (
                     <div className="space-y-2">
-                        <Label>프리머니 밸류에이션</Label>
+                        <Label>프리 머니</Label>
                         <div className="relative">
                             <Input
                                 className="pr-8"
@@ -422,51 +413,51 @@ export function RoundEditor({
                             <span className="absolute right-3 top-2.5 text-slate-400 text-sm">원</span>
                         </div>
                         {previousRoundShares === 0 && (
-                            <p className="text-xs text-amber-600">
-                                기존 주식이 없어 주당 가격을 계산할 수 없습니다.
+                            <p className="text-xs text-violet-600">
+                                기존 발행주식이 없어 주당 가격을 계산할 수 없습니다.
                             </p>
                         )}
                     </div>
                 )}
 
                 {/* 요약 정보 */}
-                <div className="bg-slate-50 p-4 rounded-lg space-y-3 text-sm">
+                <div className="bg-white border border-slate-200 p-4 rounded-lg space-y-2.5 text-sm">
                     <div className="flex justify-between">
-                        <span className="text-slate-500">기존 발행 주식</span>
+                        <span className="text-slate-600">기존 발행주식</span>
                         <span>{fmt(previousRoundShares)}주</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-slate-500">주당 발행가격</span>
+                        <span className="text-slate-600">주당 가격</span>
                         <span>{fmt(round.sharePrice)}원</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-slate-500">프리머니</span>
-                        <span>{fmt(round.preMoneyValuation)}원</span>
+                        <span className="text-slate-600 font-semibold">프리 머니</span>
+                        <span className="font-semibold">{fmt(round.preMoneyValuation)}원</span>
                     </div>
-                    <div className="flex justify-between border-t border-slate-200 pt-3">
-                        <span className="text-slate-500">신규 발행 주식</span>
-                        <span>{fmt(round.totalNewShares)}주</span>
+                    <div className="flex justify-between border-t border-slate-100 pt-2.5">
+                        <span className="text-emerald-600">신규 발행주식</span>
+                        <span className="text-emerald-600">{fmt(round.totalNewShares)}주</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-slate-500">투자금</span>
-                        <span>{fmt(round.investmentAmount)}원</span>
+                        <span className="text-emerald-600">투자금</span>
+                        <span className="text-emerald-600">{fmt(round.investmentAmount)}원</span>
                     </div>
-                    <div className="flex justify-between font-medium">
-                        <span className="text-slate-700">포스트머니</span>
-                        <span>{fmt(round.postMoneyValuation)}원</span>
+                    <div className="flex justify-between border-t border-slate-100 pt-2.5">
+                        <span className="text-slate-600 font-semibold">포스트 머니</span>
+                        <span className="font-semibold">{fmt(round.postMoneyValuation)}원</span>
                     </div>
                 </div>
 
                 {/* 투자자 목록 */}
                 <div className="space-y-4">
-                    <h3 className="font-semibold text-sm">투자자</h3>
+                    <span className="text-sm font-semibold">투자자</span>
 
                     <div className="space-y-3">
                         {/* 신주 발행 투자 카드들 */}
                         {primaryInvestments.map(inv => {
                             const investor = allInvestors.find(i => i.id === inv.investorId);
                             return (
-                                <div key={inv.id} className="border rounded-lg p-3 relative group border-slate-200">
+                                <div key={inv.id} className="bg-white border rounded-lg p-3 relative group border-slate-200">
                                     <button
                                         onClick={() => removeInvestment(inv.id)}
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -474,17 +465,14 @@ export function RoundEditor({
                                         <Trash2 className="h-4 w-4 text-slate-300 hover:text-red-500" />
                                     </button>
 
-                                    <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center justify-between mb-2.5">
                                         <div className="flex items-center gap-2">
                                             <User className="h-4 w-4 text-slate-400" />
-                                            <span className="font-medium">{investor?.name || '알 수 없음'}</span>
+                                            <span className="font-semibold text-sm">{investor?.name || '알 수 없음'}</span>
                                         </div>
-                                        <button
-                                            onClick={() => toggleSecondary(inv.id)}
-                                            className="text-xs px-2 py-1 rounded-full transition-colors bg-slate-100 text-slate-500 hover:bg-slate-200"
-                                        >
+                                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                                             신주 발행
-                                        </button>
+                                        </span>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-2">
@@ -515,7 +503,7 @@ export function RoundEditor({
                         {secondaryGroups.map(group => {
                             const investor = allInvestors.find(i => i.id === group.investorId);
                             return (
-                                <div key={`secondary-${group.investorId}`} className="border rounded-lg p-3 relative group border-amber-200 bg-amber-50/30">
+                                <div key={`secondary-${group.investorId}`} className="border rounded-lg p-3 relative group border-violet-200 bg-violet-50/30">
                                     {/* 그룹 전체 삭제 버튼 (모든 거래 삭제) */}
                                     <button
                                         onClick={() => {
@@ -528,12 +516,12 @@ export function RoundEditor({
                                     </button>
 
                                     {/* 카드 헤더 */}
-                                    <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center justify-between mb-2.5">
                                         <div className="flex items-center gap-2">
-                                            <User className="h-4 w-4 text-amber-500" />
-                                            <span className="font-medium">{investor?.name || '알 수 없음'}</span>
+                                            <User className="h-4 w-4 text-violet-500" />
+                                            <span className="font-semibold text-sm">{investor?.name || '알 수 없음'}</span>
                                         </div>
-                                        <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
                                             구주 매매
                                         </span>
                                     </div>
@@ -542,7 +530,7 @@ export function RoundEditor({
                                     <div className="space-y-3">
                                         {group.investments.map((inv, idx) => {
                                             return (
-                                                <div key={inv.id} className="bg-white rounded-lg p-3 border border-amber-100 relative">
+                                                <div key={inv.id} className="bg-white rounded-lg p-2.5 border border-violet-100 relative">
                                                     {/* 개별 거래 삭제 버튼 */}
                                                     <button
                                                         onClick={() => removeInvestment(inv.id)}
@@ -553,16 +541,16 @@ export function RoundEditor({
                                                     </button>
 
                                                     {/* 거래 번호 */}
-                                                    <div className="text-xs text-amber-600 font-medium mb-2">
+                                                    <div className="text-[11px] text-violet-500 font-medium mb-1.5">
                                                         거래 {idx + 1}
                                                     </div>
 
                                                     {/* 매도자 선택 */}
-                                                    <div className="mb-3 flex items-center gap-2 text-sm">
+                                                    <div className="mb-2 flex items-center gap-1.5 text-sm">
                                                         <select
                                                             value={inv.sellerId || ''}
                                                             onChange={(e) => updateSeller(inv.id, e.target.value)}
-                                                            className="flex-1 h-8 px-2 rounded border border-amber-200 bg-white text-sm"
+                                                            className="flex-1 h-7 px-2 rounded border border-violet-200 bg-white text-xs"
                                                         >
                                                             <option value="">매도자 선택...</option>
                                                             {allInvestors
@@ -572,38 +560,38 @@ export function RoundEditor({
                                                                 ))
                                                             }
                                                         </select>
-                                                        <ArrowRight className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                                                        <span className="text-amber-700 font-medium truncate">{investor?.name}</span>
+                                                        <ArrowRight className="h-3.5 w-3.5 text-violet-400 flex-shrink-0" />
+                                                        <span className="text-violet-600 font-medium text-xs truncate">{investor?.name}</span>
                                                     </div>
 
                                                     {/* 주식수, 주당 가격, 금액 (자동 계산) */}
-                                                    <div className="grid grid-cols-3 gap-2">
+                                                    <div className="grid grid-cols-3 gap-1.5">
                                                         <div className="relative">
                                                             <Input
-                                                                className="h-8 pr-6 text-sm"
+                                                                className="h-7 pr-5 text-xs"
                                                                 value={inv.shares > 0 ? inv.shares.toLocaleString() : ''}
                                                                 onChange={(e) => handleSecondarySharesChange(inv.id, e)}
                                                                 placeholder="주식수"
                                                             />
-                                                            <span className="absolute right-2 top-1.5 text-slate-400 text-xs">주</span>
+                                                            <span className="absolute right-1.5 top-1.5 text-slate-400 text-[10px]">주</span>
                                                         </div>
                                                         <div className="relative">
                                                             <Input
-                                                                className="h-8 pr-6 text-sm"
+                                                                className="h-7 pr-5 text-xs"
                                                                 value={(inv.pricePerShare ?? round.sharePrice) > 0 ? (inv.pricePerShare ?? round.sharePrice).toLocaleString() : ''}
-                                                                onChange={(e) => handleSecondaryPricePerShareChange(inv.id, e)}
-                                                                placeholder="주당가격"
+                                                                onChange={(e) => handleSecondaryPricePerShareChange(group.investorId, e)}
+                                                                placeholder="주당 가격"
                                                             />
-                                                            <span className="absolute right-2 top-1.5 text-slate-400 text-xs">원</span>
+                                                            <span className="absolute right-1.5 top-1.5 text-slate-400 text-[10px]">원</span>
                                                         </div>
                                                         <div className="relative">
                                                             <Input
-                                                                className="h-8 pr-6 text-sm bg-slate-50"
+                                                                className="h-7 pr-5 text-xs bg-slate-50"
                                                                 value={inv.amount > 0 ? inv.amount.toLocaleString() : '-'}
                                                                 disabled
                                                                 readOnly
                                                             />
-                                                            <span className="absolute right-2 top-1.5 text-slate-400 text-xs">원</span>
+                                                            <span className="absolute right-1.5 top-1.5 text-slate-400 text-[10px]">원</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -614,9 +602,9 @@ export function RoundEditor({
                                     {/* 거래 추가 버튼 */}
                                     <button
                                         onClick={() => addSecondaryTransaction(group.investorId)}
-                                        className="mt-3 w-full py-2 text-sm text-amber-600 hover:text-amber-700 hover:bg-amber-100/50 rounded-lg border border-dashed border-amber-300 transition-colors flex items-center justify-center gap-1"
+                                        className="mt-2 w-full py-1.5 text-xs text-violet-500 hover:text-violet-600 hover:bg-violet-100/50 rounded border border-dashed border-violet-300 transition-colors flex items-center justify-center gap-1"
                                     >
-                                        <Plus className="h-4 w-4" />
+                                        <Plus className="h-3.5 w-3.5" />
                                         거래 추가
                                     </button>
                                 </div>
@@ -635,7 +623,7 @@ export function RoundEditor({
                                     value={newInvestorName}
                                     onChange={(e) => setNewInvestorName(e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter') commitNewInvestor();
+                                        if (!e.nativeEvent.isComposing && e.key === 'Enter') commitNewInvestor();
                                         if (e.key === 'Escape') setIsAddingNew(false);
                                     }}
                                 />

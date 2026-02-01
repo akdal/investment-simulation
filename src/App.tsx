@@ -315,7 +315,8 @@ function App() {
 
   // 그룹 관리
   const onAddGroup = (name: string): InvestorGroup => {
-    const newGroup: InvestorGroup = { id: crypto.randomUUID(), name };
+    const maxOrder = Math.max(0, ...(currentSim?.investorGroups || []).map(g => g.order || 0));
+    const newGroup: InvestorGroup = { id: crypto.randomUUID(), name, order: maxOrder + 1 };
     if (currentSim) {
       updateCurrentSim({ investorGroups: [...(currentSim.investorGroups || []), newGroup] });
     }
@@ -339,6 +340,30 @@ function App() {
       investors: currentSim.investors.map(inv =>
         inv.groupId === groupId ? { ...inv, groupId: undefined } : inv
       )
+    });
+  };
+
+  const onMoveGroup = (groupId: string, direction: 'up' | 'down') => {
+    if (!currentSim) return;
+
+    // 현재 order 기준 정렬 (order 없으면 맨 뒤로)
+    const sortedGroups = [...(currentSim.investorGroups || [])].sort((a, b) =>
+      (a.order ?? Infinity) - (b.order ?? Infinity)
+    );
+
+    const currentIndex = sortedGroups.findIndex(g => g.id === groupId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sortedGroups.length) return;
+
+    // 배열에서 위치 교환
+    const newGroups = [...sortedGroups];
+    [newGroups[currentIndex], newGroups[targetIndex]] = [newGroups[targetIndex], newGroups[currentIndex]];
+
+    // 새 위치 기반으로 order 재할당
+    updateCurrentSim({
+      investorGroups: newGroups.map((g, idx) => ({ ...g, order: idx }))
     });
   };
 
@@ -370,6 +395,28 @@ function App() {
   const investors = currentSim?.investors || [];
   const rounds = currentSim?.rounds || [];
   const investorGroups = currentSim?.investorGroups || [];
+
+  // 그룹 지분 불완전 경고 계산 (모든 투자자가 그룹에 할당되지 않은 경우)
+  const isGroupIncomplete = (() => {
+    if (rounds.length === 0 || investorGroups.length === 0) return false;
+
+    const lastCapTable = getCapTableAtRound(rounds.length - 1);
+    const totalShares = lastCapTable.reduce((sum, h) => sum + h.shares, 0);
+    if (totalShares === 0) return false;
+
+    // 그룹에 속한 투자자 ID들
+    const groupedInvestorIds = new Set(
+      investors.filter(inv => inv.groupId).map(inv => inv.id)
+    );
+
+    // 그룹에 속한 투자자들의 주식 합계
+    const groupedShares = lastCapTable
+      .filter(h => groupedInvestorIds.has(h.investorId))
+      .reduce((sum, h) => sum + h.shares, 0);
+
+    const groupTotalPercentage = (groupedShares / totalShares) * 100;
+    return Math.abs(groupTotalPercentage - 100) > 0.01;
+  })();
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 font-sans text-slate-900">
@@ -406,6 +453,9 @@ function App() {
             >
               <Users className="h-3.5 w-3.5 mr-1.5" />
               투자자 관리
+              {isGroupIncomplete && (
+                <span className="ml-1.5 w-2 h-2 rounded-full bg-amber-500" />
+              )}
             </button>
 
             <div className="h-6 w-px bg-slate-700" />
@@ -426,7 +476,7 @@ function App() {
               저장
             </button>
 
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center justify-end text-xs w-[70px]">
               {saveStatus === 'saving' && <span className="text-blue-400">저장 중...</span>}
               {saveStatus === 'saved' && (
                 <span className="text-emerald-400 flex items-center gap-1">
@@ -490,12 +540,14 @@ function App() {
             investors={investors}
             investorGroups={investorGroups}
             rounds={rounds}
+            isGroupIncomplete={isGroupIncomplete}
             onAddInvestor={onAddInvestor}
             onUpdateInvestor={onUpdateInvestor}
             onDeleteInvestor={onDeleteInvestor}
             onAddGroup={onAddGroup}
             onUpdateGroup={onUpdateGroup}
             onDeleteGroup={onDeleteGroup}
+            onMoveGroup={onMoveGroup}
             onAssignInvestor={onAssignInvestorToGroup}
             onClose={() => setIsGroupPanelOpen(false)}
           />
@@ -560,7 +612,7 @@ function SimulationPanel({
                   onClick={() => onSelectSimulation(sim.id)}
                 >
                   {/* 드래그 핸들 / 순서 표시 */}
-                  <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -570,7 +622,7 @@ function SimulationPanel({
                       className={`p-0.5 rounded hover:bg-slate-200 ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
                       title="위로 이동"
                     >
-                      <ChevronUp className="h-3 w-3 text-slate-400" />
+                      <ChevronUp className="h-2.5 w-2.5 text-slate-400" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -581,7 +633,7 @@ function SimulationPanel({
                       className={`p-0.5 rounded hover:bg-slate-200 ${index === simulations.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
                       title="아래로 이동"
                     >
-                      <ChevronDown className="h-3 w-3 text-slate-400" />
+                      <ChevronDown className="h-2.5 w-2.5 text-slate-400" />
                     </button>
                   </div>
 
@@ -598,7 +650,7 @@ function SimulationPanel({
                           setEditingId(null);
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (!e.nativeEvent.isComposing && e.key === 'Enter') {
                             onRenameSimulation(sim.id, e.currentTarget.value);
                             setEditingId(null);
                           }
@@ -619,26 +671,26 @@ function SimulationPanel({
 
                   {/* 액션 버튼들 */}
                   {!isEditing && (
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingId(sim.id);
                         }}
-                        className="p-1.5 hover:bg-slate-200 rounded"
+                        className="p-1 hover:bg-slate-200 rounded"
                         title="이름 변경"
                       >
-                        <Pencil className="h-3.5 w-3.5 text-slate-400 hover:text-blue-500" />
+                        <Pencil className="h-3 w-3 text-slate-400 hover:text-blue-500" />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onDuplicateSimulation(sim.id);
                         }}
-                        className="p-1.5 hover:bg-slate-200 rounded"
+                        className="p-1 hover:bg-slate-200 rounded"
                         title="복사"
                       >
-                        <Copy className="h-3.5 w-3.5 text-slate-400 hover:text-blue-500" />
+                        <Copy className="h-3 w-3 text-slate-400 hover:text-blue-500" />
                       </button>
                       {simulations.length > 1 && (
                         <button
@@ -646,10 +698,10 @@ function SimulationPanel({
                             e.stopPropagation();
                             onDeleteSimulation(sim.id);
                           }}
-                          className="p-1.5 hover:bg-slate-200 rounded"
+                          className="p-1 hover:bg-slate-200 rounded"
                           title="삭제"
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-500" />
+                          <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
                         </button>
                       )}
                     </div>
@@ -680,24 +732,28 @@ function InvestorPanel({
   investors,
   investorGroups,
   rounds,
+  isGroupIncomplete,
   onAddInvestor,
   onUpdateInvestor,
   onDeleteInvestor,
   onAddGroup,
   onUpdateGroup,
   onDeleteGroup,
+  onMoveGroup,
   onAssignInvestor,
   onClose
 }: {
   investors: Investor[];
   investorGroups: InvestorGroup[];
   rounds: Round[];
+  isGroupIncomplete: boolean;
   onAddInvestor: (name: string, type: Investor['type']) => Investor;
   onUpdateInvestor: (investorId: string, name: string) => void;
   onDeleteInvestor: (investorId: string) => void;
   onAddGroup: (name: string) => InvestorGroup;
   onUpdateGroup: (groupId: string, name: string) => void;
   onDeleteGroup: (groupId: string) => void;
+  onMoveGroup: (groupId: string, direction: 'up' | 'down') => void;
   onAssignInvestor: (investorId: string, groupId: string | undefined) => void;
   onClose: () => void;
 }) {
@@ -726,9 +782,14 @@ function InvestorPanel({
   };
 
   return (
-    <div className="w-[320px] bg-slate-50 border-l border-slate-200 flex flex-col h-full flex-shrink-0">
+    <div className="w-[380px] bg-slate-50 border-l border-slate-200 flex flex-col h-full flex-shrink-0">
       <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-gradient-to-r from-indigo-50/80 to-slate-50">
-        <h2 className="font-bold text-lg">투자자 관리</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-lg">투자자 관리</h2>
+          {isGroupIncomplete && (
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+          )}
+        </div>
         <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
           <X className="h-5 w-5 text-slate-400" />
         </button>
@@ -738,18 +799,20 @@ function InvestorPanel({
         {/* 투자자 섹션 */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-700">전체 투자자 ({investors.length}명)</span>
+            <span className="text-sm font-semibold">전체 투자자 ({investors.length}명)</span>
           </div>
 
           {/* 투자자 목록 */}
           <div className="space-y-1">
-            {investors.map(inv => {
+            {investors.map((inv, idx) => {
               const isEditing = editingInvestorId === inv.id;
               const isUsed = isInvestorUsed(inv.id);
-              const group = investorGroups.find(g => g.id === inv.groupId);
 
               return (
-                <div key={inv.id} className="group flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200">
+                <div key={inv.id} className="flex items-center gap-2 py-1.5">
+                  <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] flex items-center justify-center flex-shrink-0">
+                    {idx + 1}
+                  </span>
                   {isEditing ? (
                     <Input
                       autoFocus
@@ -762,7 +825,7 @@ function InvestorPanel({
                         setEditingInvestorId(null);
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                        if (!e.nativeEvent.isComposing && e.key === 'Enter' && e.currentTarget.value.trim()) {
                           onUpdateInvestor(inv.id, e.currentTarget.value.trim());
                           setEditingInvestorId(null);
                         }
@@ -772,43 +835,38 @@ function InvestorPanel({
                   ) : (
                     <>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{inv.name}</div>
-                        {group && (
-                          <div className="text-xs text-slate-400">{group.name}</div>
-                        )}
+                        <div className="text-sm truncate">{inv.name}</div>
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <select
-                          className="h-6 px-1 text-xs border border-slate-200 rounded bg-white"
-                          value={inv.groupId || ''}
-                          onChange={(e) => onAssignInvestor(inv.id, e.target.value || undefined)}
-                        >
-                          <option value="">그룹 없음</option>
-                          {investorGroups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                          ))}
-                        </select>
+                      <select
+                        className="h-6 px-1 text-xs border border-slate-200 rounded bg-white"
+                        value={inv.groupId || ''}
+                        onChange={(e) => onAssignInvestor(inv.id, e.target.value || undefined)}
+                      >
+                        <option value="">그룹 없음</option>
+                        {[...investorGroups].sort((a, b) => (a.order || 0) - (b.order || 0)).map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setEditingInvestorId(inv.id)}
+                        className="p-1 rounded"
+                        title="이름 변경"
+                      >
+                        <Pencil className="h-3 w-3 text-slate-400" />
+                      </button>
+                      {!isUsed && (
                         <button
-                          onClick={() => setEditingInvestorId(inv.id)}
-                          className="p-1 hover:bg-slate-200 rounded"
-                          title="이름 변경"
+                          onClick={() => {
+                            if (confirm(`"${inv.name}" 투자자를 삭제하시겠습니까?`)) {
+                              onDeleteInvestor(inv.id);
+                            }
+                          }}
+                          className="p-1 rounded"
+                          title="삭제"
                         >
-                          <Pencil className="h-3 w-3 text-slate-400" />
+                          <Trash2 className="h-3 w-3 text-slate-400" />
                         </button>
-                        {!isUsed && (
-                          <button
-                            onClick={() => {
-                              if (confirm(`"${inv.name}" 투자자를 삭제하시겠습니까?`)) {
-                                onDeleteInvestor(inv.id);
-                              }
-                            }}
-                            className="p-1 hover:bg-slate-200 rounded"
-                            title="삭제"
-                          >
-                            <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -823,7 +881,7 @@ function InvestorPanel({
               onChange={(e) => setNewInvestorName(e.target.value)}
               placeholder="새 투자자 이름"
               className="h-8 text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddInvestor()}
+              onKeyDown={(e) => !e.nativeEvent.isComposing && e.key === 'Enter' && handleAddInvestor()}
             />
             <Button size="sm" className="h-8 px-3" onClick={handleAddInvestor}>
               <Plus className="h-4 w-4" />
@@ -834,14 +892,16 @@ function InvestorPanel({
         {/* 그룹 섹션 */}
         <div className="space-y-3 border-t border-slate-200 pt-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-700">그룹 ({investorGroups.length}개)</span>
+            <span className="text-sm font-semibold">그룹 ({investorGroups.length}개)</span>
           </div>
 
           {/* 그룹 목록 */}
           <div className="space-y-2">
-            {investorGroups.map(group => {
+            {[...investorGroups].sort((a, b) => (a.order || 0) - (b.order || 0)).map((group, idx, sortedGroups) => {
               const groupInvestors = investors.filter(inv => inv.groupId === group.id);
               const isEditing = editingGroupId === group.id;
+              const isFirst = idx === 0;
+              const isLast = idx === sortedGroups.length - 1;
 
               return (
                 <div key={group.id} className="border border-slate-200 rounded-lg p-3">
@@ -858,7 +918,7 @@ function InvestorPanel({
                           setEditingGroupId(null);
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                          if (!e.nativeEvent.isComposing && e.key === 'Enter' && e.currentTarget.value.trim()) {
                             onUpdateGroup(group.id, e.currentTarget.value.trim());
                             setEditingGroupId(null);
                           }
@@ -869,6 +929,22 @@ function InvestorPanel({
                       <>
                         <span className="font-medium text-sm">{group.name}</span>
                         <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => onMoveGroup(group.id, 'up')}
+                            className={`p-1 rounded ${isFirst ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}
+                            disabled={isFirst}
+                            title="위로 이동"
+                          >
+                            <ChevronUp className="h-3 w-3 text-slate-400" />
+                          </button>
+                          <button
+                            onClick={() => onMoveGroup(group.id, 'down')}
+                            className={`p-1 rounded ${isLast ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}
+                            disabled={isLast}
+                            title="아래로 이동"
+                          >
+                            <ChevronDown className="h-3 w-3 text-slate-400" />
+                          </button>
                           <button
                             onClick={() => setEditingGroupId(group.id)}
                             className="p-1 hover:bg-slate-100 rounded"
@@ -921,7 +997,7 @@ function InvestorPanel({
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="새 그룹 이름"
               className="h-8 text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddGroup()}
+              onKeyDown={(e) => !e.nativeEvent.isComposing && e.key === 'Enter' && handleAddGroup()}
             />
             <Button size="sm" className="h-8 px-3" onClick={handleAddGroup}>
               <Plus className="h-4 w-4" />

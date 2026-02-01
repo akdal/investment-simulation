@@ -10,9 +10,14 @@ export const calculateRoundMetrics = (
     totalSharesBeforeRound: number,
     investments: Investment[]
 ) => {
-    // 투자금 = 주식수 * 주당 가격 (신주 발행만)
+    // 투자금 = 주식수 * 주당 가격
     const updatedInvestments = investments.map(inv => {
-        if (inv.isSecondary) return inv;
+        if (inv.isSecondary) {
+            // 구주 매매: pricePerShare가 설정되어 있으면 그 값 사용, 아니면 라운드 sharePrice 사용
+            const effectivePrice = inv.pricePerShare !== undefined ? inv.pricePerShare : sharePrice;
+            const amount = inv.shares * effectivePrice;
+            return { ...inv, amount };
+        }
 
         // 신주 발행: 주식수 기반으로 투자금 계산
         const amount = inv.shares * sharePrice;
