@@ -24,3 +24,28 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Recharts focus outline 제거 */
+.recharts-wrapper,
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-surface:focus-visible,
+.recharts-responsive-container,
+.recharts-responsive-container:focus,
+.recharts-responsive-container:focus-visible,
+.recharts-responsive-container > div,
+.recharts-responsive-container > div:focus,
+.recharts-responsive-container > div:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 차트 컨테이너 focus 제거 */
+[class*="recharts"]:focus,
+[class*="recharts"]:focus-visible {
+  outline: none !important;
+}
