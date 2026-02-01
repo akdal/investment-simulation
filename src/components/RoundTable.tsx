@@ -10,6 +10,7 @@ interface RoundTableProps {
     onSelectRound: (roundId: string) => void;
     onAddRound: () => void;
     getCapTableAtRound: (roundIndex: number) => Shareholding[];
+    isCompactView?: boolean;
 }
 
 export function RoundTable({
@@ -20,6 +21,7 @@ export function RoundTable({
     onSelectRound,
     onAddRound,
     getCapTableAtRound,
+    isCompactView = false,
 }: RoundTableProps) {
     const fmt = (n: number) => n.toLocaleString();
 
@@ -153,9 +155,9 @@ export function RoundTable({
             {/* 오른쪽 그라데이션 페이드 & 화살표 힌트 */}
             {canScrollRight && (
                 <div className="absolute right-0 top-0 h-full z-30 pointer-events-none flex items-center">
-                    <div className="w-12 h-full bg-gradient-to-l from-white/80 to-transparent" />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 rounded-full p-1 shadow-sm border border-slate-200">
-                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <div className="w-32 h-full bg-gradient-to-l from-white via-white/70 to-transparent" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-white rounded-full p-1.5 shadow-md border border-slate-300">
+                        <ChevronRight className="w-5 h-5 text-slate-500" />
                     </div>
                 </div>
             )}
@@ -179,7 +181,7 @@ export function RoundTable({
                                     <th
                                         key={round.id}
                                         onClick={() => onSelectRound(round.id)}
-                                        className={`w-[200px] min-w-[200px] px-2 py-4 text-center cursor-pointer transition-all duration-150 ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id
+                                        className={`w-[200px] min-w-[200px] px-3 py-4 text-center cursor-pointer transition-all duration-150 ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id
                                             ? 'bg-blue-50 border-l border-r border-slate-500 shadow-[inset_0_-3px_0_0_theme(colors.slate.500)]'
                                             : 'hover:bg-slate-50'
                                             }`}
@@ -208,7 +210,7 @@ export function RoundTable({
 
                         {/* 라운드 요약 정보 */}
                         <tr className="bg-white text-sm">
-                            <th className="py-1.5 px-2 text-left text-slate-900 font-semibold sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">프리 머니</th>
+                            <th className="py-1.5 px-3 text-left text-slate-900 font-semibold sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">프리 머니</th>
                             {rounds.map((round, roundIdx) => {
                                 // 직전 라운드 대비 배수 계산
                                 const prevRound = roundIdx > 0 ? rounds[roundIdx - 1] : null;
@@ -229,7 +231,7 @@ export function RoundTable({
                                     <td
                                         key={round.id}
                                         onClick={() => onSelectRound(round.id)}
-                                        className={`py-1.5 px-2 text-right cursor-pointer transition-colors duration-150 ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                        className={`py-1.5 px-3 text-right cursor-pointer transition-colors duration-150 ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                             }`}
                                     >
                                         <div className="flex items-center justify-end gap-1.5">
@@ -249,16 +251,16 @@ export function RoundTable({
                                 );
                             })}
                             <td className="border-l border-slate-200"></td>
-                            <td className="py-1.5 px-2 border-l border-slate-200 border-r border-slate-200 bg-white"></td>
+                            <td className="py-1.5 px-3 border-l border-slate-200 border-r border-slate-200 bg-white"></td>
                             <td></td>
                         </tr>
                         <tr className="bg-white text-sm">
-                            <th className="py-1.5 px-2 text-left text-emerald-600 font-semibold sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">투자금</th>
+                            <th className="py-1.5 px-3 text-left text-emerald-600 font-semibold sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">투자금</th>
                             {rounds.map((round, roundIdx) => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`py-1.5 px-2 text-right cursor-pointer transition-colors duration-150 ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                    className={`py-1.5 px-3 text-right cursor-pointer transition-colors duration-150 ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                         }`}
                                 >
                                     <span className={`text-sm font-bold ${round.investmentAmount > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
@@ -267,9 +269,9 @@ export function RoundTable({
                                 </td>
                             ))}
                             <td className="border-l border-slate-200 bg-white"></td>
-                            <td className="py-1.5 px-2 text-right border-l border-slate-200 border-r border-slate-200 bg-white">
+                            <td className="py-1.5 px-3 text-right border-l border-slate-200 border-r border-slate-200 bg-white">
                                 <div className="flex flex-col items-end">
-                                    <div className="grid grid-cols-[32px_1fr] items-center gap-1.5 w-full">
+                                    <div className="grid grid-cols-[18px_1fr] items-center gap-1.5 w-full">
                                         <span className="text-[10px] text-slate-400 text-left">누적</span>
                                         <div className="justify-self-end">
                                             <span className="text-sm font-bold text-emerald-600">
@@ -282,28 +284,28 @@ export function RoundTable({
                             <td></td>
                         </tr>
                         <tr className="bg-white text-sm">
-                            <th className="py-1.5 px-2 text-left text-slate-900 font-semibold sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">포스트 머니</th>
+                            <th className="py-1.5 px-3 text-left text-slate-900 font-semibold sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">포스트 머니</th>
                             {rounds.map((round, roundIdx) => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`py-1.5 px-2 text-right cursor-pointer transition-colors duration-150 font-bold ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                    className={`py-1.5 px-3 text-right cursor-pointer transition-colors duration-150 font-bold ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                         }`}
                                 >
                                     {fmtMoney(round.postMoneyValuation)}
                                 </td>
                             ))}
                             <td className="border-l border-slate-200"></td>
-                            <td className="py-1.5 px-2 border-l border-slate-200 border-r border-slate-200 bg-white"></td>
+                            <td className="py-1.5 px-3 border-l border-slate-200 border-r border-slate-200 bg-white"></td>
                             <td></td>
                         </tr>
                         <tr className="text-xs bg-white border-t border-slate-200">
-                            <th className="py-1 px-2 text-left text-slate-900 font-medium sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">주당 가격</th>
+                            <th className="py-1 px-3 text-left text-slate-900 font-medium sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">주당 가격</th>
                             {rounds.map((round, roundIdx) => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`py-1 px-2 text-right cursor-pointer transition-colors duration-150 text-xs ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                    className={`py-1 px-3 text-right cursor-pointer transition-colors duration-150 text-xs ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                         }`}
                                 >
                                     {fmt(round.sharePrice)}원
@@ -314,12 +316,12 @@ export function RoundTable({
                             <td></td>
                         </tr>
                         <tr className="text-xs bg-white">
-                            <th className="py-1 px-2 text-left text-emerald-600 font-medium sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">신규 발행주식</th>
+                            <th className="py-1 px-3 text-left text-emerald-600 font-medium sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">신규 발행주식</th>
                             {rounds.map((round, roundIdx) => (
                                 <td
                                     key={round.id}
                                     onClick={() => onSelectRound(round.id)}
-                                    className={`py-1 px-2 text-right cursor-pointer transition-colors duration-150 text-xs ${round.totalNewShares > 0 ? 'text-emerald-600' : 'text-slate-400'} ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                    className={`py-1 px-3 text-right cursor-pointer transition-colors duration-150 text-xs ${round.totalNewShares > 0 ? 'text-emerald-600' : 'text-slate-400'} ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                         }`}
                                 >
                                     {fmt(round.totalNewShares)}주
@@ -330,7 +332,7 @@ export function RoundTable({
                             <td></td>
                         </tr>
                         <tr className="text-xs bg-white border-b-2 border-slate-300">
-                            <th className="py-1 px-2 text-left text-slate-900 font-medium sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">총 발행주식</th>
+                            <th className="py-1 px-3 text-left text-slate-900 font-medium sticky left-0 bg-white z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)]">총 발행주식</th>
                             {rounds.map((round, roundIdx) => {
                                 const capTable = getCapTableAtRound(roundIdx);
                                 const totalShares = capTable.reduce((sum, h) => sum + h.shares, 0);
@@ -338,7 +340,7 @@ export function RoundTable({
                                     <td
                                         key={round.id}
                                         onClick={() => onSelectRound(round.id)}
-                                        className={`py-1 px-2 text-right cursor-pointer transition-colors duration-150 text-xs ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                        className={`py-1 px-3 text-right cursor-pointer transition-colors duration-150 text-xs ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                             }`}
                                     >
                                         {fmt(totalShares)}주
@@ -354,7 +356,7 @@ export function RoundTable({
                     <tbody>
                         {/* 투자자 섹션 헤더 */}
                         <tr>
-                            <td className="pt-4 pb-2 px-2 sticky left-0 bg-white z-10">
+                            <td className="pt-4 pb-2 px-3 sticky left-0 bg-white z-10">
                                 <span className="text-xs text-slate-500 font-medium">투자자별 지분</span>
                             </td>
                             <td colSpan={rounds.length + 3}></td>
@@ -389,7 +391,7 @@ export function RoundTable({
                                             key={investorId}
                                             className={`group transition-colors ${isLastInvestor ? 'border-b-2 border-slate-300' : 'border-b border-slate-100'} ${isEvenRow ? 'bg-white' : 'bg-slate-50'}                                                 } `}
                                         >
-                                            <td className={`p-2 font-semibold text-slate-900 sticky left-0 z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)] align-top ${isEvenRow ? 'bg-white' : 'bg-slate-50'}  ${isLastInvestor ? 'border-b-2 border-slate-300' : ''}`}>
+                                            <td className={`py-2 px-3 font-semibold text-slate-900 sticky left-0 z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)] align-top ${isEvenRow ? 'bg-white' : 'bg-slate-50'}  ${isLastInvestor ? 'border-b-2 border-slate-300' : ''}`}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] flex items-center justify-center flex-shrink-0 font-normal">
                                                         {rowIdx + 1}
@@ -429,12 +431,12 @@ export function RoundTable({
                                                     <td
                                                         key={round.id}
                                                         onClick={() => onSelectRound(round.id)}
-                                                        className={`p-2 text-right cursor-pointer transition-colors duration-150 align-top ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                                        className={`py-2 px-3 text-right cursor-pointer transition-colors duration-150 align-top ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                                             }`}
                                                     >
                                                         {shares > 0 || hasActivity ? (
                                                             <div>
-                                                                {/* 지분율 */}
+                                                                {/* 지분율 - 항상 표시 */}
                                                                 <div className={`leading-5 pb-0.5 ${isMaxShareholder ? 'font-bold text-blue-800' : 'font-medium'}`}>
                                                                     {percentage.toFixed(1)}%
                                                                 </div>
@@ -456,12 +458,16 @@ export function RoundTable({
                                                                             매도 {fmtMoney(secondarySellAmount)}
                                                                         </span>
                                                                     )}
+                                                                    {/* 평가금액 - 항상 표시 */}
                                                                     <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
                                                                         {fmtMoney(Math.round(value))}
                                                                     </span>
-                                                                    <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
-                                                                        {fmt(shares)}주
-                                                                    </span>
+                                                                    {/* 주식수 - 상세 뷰에서만 */}
+                                                                    {!isCompactView && (
+                                                                        <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
+                                                                            {fmt(shares)}주
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         ) : (
@@ -472,28 +478,28 @@ export function RoundTable({
                                             })}
                                             <td className="border-l border-slate-200 align-top"></td>
                                             {/* 요약 열 */}
-                                            <td className="p-2 border-l border-slate-200 border-r border-slate-200 text-right align-top">
+                                            <td className="py-2 px-3 border-l border-slate-200 border-r border-slate-200 text-right align-top">
                                                 <div className="flex flex-col items-end gap-0 text-[10px] leading-4">
                                                     {summary.primaryInvestment > 0 && (
-                                                        <div className="grid grid-cols-[24px_1fr] items-center w-full text-emerald-600">
+                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-emerald-600">
                                                             <span className="text-left">투자</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(summary.primaryInvestment)}</span>
                                                         </div>
                                                     )}
                                                     {summary.secondaryBuy > 0 && (
-                                                        <div className="grid grid-cols-[24px_1fr] items-center w-full text-amber-600">
+                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-amber-600">
                                                             <span className="text-left">매수</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(summary.secondaryBuy)}</span>
                                                         </div>
                                                     )}
                                                     {summary.secondarySell > 0 && (
-                                                        <div className="grid grid-cols-[24px_1fr] items-center w-full text-violet-600">
+                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-violet-600">
                                                             <span className="text-left">매도</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(summary.secondarySell)}</span>
                                                         </div>
                                                     )}
                                                     {summary.currentValue > 0 && (
-                                                        <div className="grid grid-cols-[24px_1fr] items-center w-full text-slate-600">
+                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-slate-600">
                                                             <span className="text-left">보유</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(Math.round(summary.currentValue))}</span>
                                                         </div>
@@ -564,7 +570,7 @@ export function RoundTable({
                                 return (
                                     <>
                                         <tr>
-                                            <td className="pt-6 pb-2 px-2 border-t-2 border-slate-300 sticky left-0 bg-white z-10">
+                                            <td className="pt-6 pb-2 px-3 border-t-2 border-slate-300 sticky left-0 bg-white z-10">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs text-slate-500 font-medium">그룹별 지분</span>
                                                     {isGroupIncomplete && (
@@ -588,7 +594,7 @@ export function RoundTable({
                                                     key={group.id}
                                                     className={`group transition-colors ${isLastGroup ? 'border-b-2 border-slate-300' : 'border-b border-slate-100'} ${isEvenRow ? 'bg-white' : 'bg-slate-50'} hover:bg-slate-100/10`}
                                                 >
-                                                    <td className={`p-2 font-semibold text-slate-900 sticky left-0 z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)] align-top ${isEvenRow ? 'bg-white' : 'bg-slate-50'}  ${isLastGroup ? 'border-b-2 border-slate-300' : ''}`}>
+                                                    <td className={`py-2 px-3 font-semibold text-slate-900 sticky left-0 z-10 shadow-[inset_-1px_0_0_0_theme(colors.slate.200)] align-top ${isEvenRow ? 'bg-white' : 'bg-slate-50'}  ${isLastGroup ? 'border-b-2 border-slate-300' : ''}`}>
                                                         <div className="flex items-center gap-2">
                                                             <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] flex items-center justify-center flex-shrink-0 font-normal">
                                                                 G
@@ -631,12 +637,12 @@ export function RoundTable({
                                                             <td
                                                                 key={round.id}
                                                                 onClick={() => onSelectRound(round.id)}
-                                                                className={`p-2 text-right cursor-pointer transition-colors duration-150 align-top ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
+                                                                className={`py-2 px-3 text-right cursor-pointer transition-colors duration-150 align-top ${roundIdx > 0 && selectedRoundId !== round.id ? 'border-l border-slate-200' : ''} ${selectedRoundId === round.id ? 'border-l border-r border-slate-500' : ''
                                                                     }`}
                                                             >
                                                                 {groupShares > 0 || hasActivity ? (
                                                                     <div>
-                                                                        {/* 지분율 */}
+                                                                        {/* 지분율 - 항상 표시 */}
                                                                         <div className={`leading-5 pb-0.5 ${isMaxGroup ? 'font-bold text-blue-800' : 'font-medium'}`}>
                                                                             {percentage.toFixed(1)}%
                                                                         </div>
@@ -658,12 +664,16 @@ export function RoundTable({
                                                                                     매도 {fmtMoney(groupSecondarySellAmount)}
                                                                                 </span>
                                                                             )}
+                                                                            {/* 평가금액 - 항상 표시 */}
                                                                             <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
                                                                                 {fmtMoney(Math.round(value))}
                                                                             </span>
-                                                                            <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
-                                                                                {fmt(groupShares)}주
-                                                                            </span>
+                                                                            {/* 주식수 - 상세 뷰에서만 */}
+                                                                            {!isCompactView && (
+                                                                                <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
+                                                                                    {fmt(groupShares)}주
+                                                                                </span>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ) : (
@@ -674,28 +684,28 @@ export function RoundTable({
                                                     })}
                                                     <td className="border-l border-slate-200 align-top"></td>
                                                     {/* 요약 열 */}
-                                                    <td className="p-2 border-l border-slate-200 border-r border-slate-200 text-right align-top">
+                                                    <td className="py-2 px-3 border-l border-slate-200 border-r border-slate-200 text-right align-top">
                                                         <div className="flex flex-col items-end gap-0 text-[10px] leading-4">
                                                             {groupSummary.primaryInvestment > 0 && (
-                                                                <div className="grid grid-cols-[24px_1fr] items-center w-full text-emerald-600">
+                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-emerald-600">
                                                                     <span className="text-left">투자</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(groupSummary.primaryInvestment)}</span>
                                                                 </div>
                                                             )}
                                                             {groupSummary.secondaryBuy > 0 && (
-                                                                <div className="grid grid-cols-[24px_1fr] items-center w-full text-amber-600">
+                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-amber-600">
                                                                     <span className="text-left">매수</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(groupSummary.secondaryBuy)}</span>
                                                                 </div>
                                                             )}
                                                             {groupSummary.secondarySell > 0 && (
-                                                                <div className="grid grid-cols-[24px_1fr] items-center w-full text-violet-600">
+                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-violet-600">
                                                                     <span className="text-left">매도</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(groupSummary.secondarySell)}</span>
                                                                 </div>
                                                             )}
                                                             {groupSummary.currentValue > 0 && (
-                                                                <div className="grid grid-cols-[24px_1fr] items-center w-full text-slate-600">
+                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-slate-600">
                                                                     <span className="text-left">보유</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(Math.round(groupSummary.currentValue))}</span>
                                                                 </div>
