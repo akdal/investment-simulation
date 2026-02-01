@@ -2,13 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import type { Round, Investor, Simulation, Shareholding, InvestorGroup, Investment } from './types';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
-import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, LayoutGrid, Layers, BarChart3 } from 'lucide-react';
 import { RoundEditor } from './components/RoundEditor';
 import { RoundTable } from './components/RoundTable';
+import { ChartPanel } from './components/ChartPanel';
 import { calculateCapTable } from './lib/calc';
 
 const STORAGE_KEY = 'investment-simulations';
 const CURRENT_SIM_KEY = 'current-simulation-id';
+const VIEW_MODE_KEY = 'investmentSimViewMode';
 
 function createDefaultSimulation(name: string = '새 시뮬레이션'): Simulation {
   const now = new Date().toISOString();
@@ -27,9 +29,14 @@ function App() {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [currentSimId, setCurrentSimId] = useState<string | null>(null);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
-  const [isSimPanelOpen, setIsSimPanelOpen] = useState(false);
+  const [isSimPanelOpen, setIsSimPanelOpen] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | null>(null);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false);
+  const [isChartPanelOpen, setIsChartPanelOpen] = useState(false);
+  const [isCompactView, setIsCompactView] = useState(() => {
+    const saved = localStorage.getItem(VIEW_MODE_KEY);
+    return saved !== 'detailed';
+  });
   const isInitialized = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,6 +66,11 @@ function App() {
 
     isInitialized.current = true;
   }, []);
+
+  // 뷰 모드 저장
+  useEffect(() => {
+    localStorage.setItem(VIEW_MODE_KEY, isCompactView ? 'compact' : 'detailed');
+  }, [isCompactView]);
 
   // 자동 저장
   useEffect(() => {
@@ -448,6 +460,18 @@ function App() {
 
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setIsCompactView(!isCompactView)}
+              className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${
+                isCompactView
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                  : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
+              }`}
+            >
+              {isCompactView ? <LayoutGrid className="h-3.5 w-3.5 mr-1.5" /> : <Layers className="h-3.5 w-3.5 mr-1.5" />}
+              심플 뷰
+            </button>
+
+            <button
               onClick={() => setIsGroupPanelOpen(!isGroupPanelOpen)}
               className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isGroupPanelOpen ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
             >
@@ -456,6 +480,14 @@ function App() {
               {isGroupIncomplete && (
                 <span className="ml-1.5 w-2 h-2 rounded-full bg-amber-500" />
               )}
+            </button>
+
+            <button
+              onClick={() => setIsChartPanelOpen(!isChartPanelOpen)}
+              className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isChartPanelOpen ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
+            >
+              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+              차트 분석
             </button>
 
             <div className="h-6 w-px bg-slate-700" />
@@ -519,6 +551,7 @@ function App() {
             }}
             onAddRound={addRound}
             getCapTableAtRound={getCapTableAtRound}
+            isCompactView={isCompactView}
           />
         </div>
 
@@ -550,6 +583,16 @@ function App() {
             onMoveGroup={onMoveGroup}
             onAssignInvestor={onAssignInvestorToGroup}
             onClose={() => setIsGroupPanelOpen(false)}
+          />
+        )}
+
+        {isChartPanelOpen && (
+          <ChartPanel
+            rounds={rounds}
+            investors={investors}
+            investorGroups={investorGroups}
+            getCapTableAtRound={getCapTableAtRound}
+            onClose={() => setIsChartPanelOpen(false)}
           />
         )}
       </div>
