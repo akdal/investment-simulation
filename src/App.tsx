@@ -42,16 +42,22 @@ function App() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isLoadingShared, setIsLoadingShared] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isViewOnly, setIsViewOnly] = useState(false);
   const isInitialized = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // URL에 공유 링크가 있는지 확인
+  const hasSharedId = new URLSearchParams(window.location.search).has('id');
 
   // 인증 토큰 검증
   useEffect(() => {
     const verifyToken = async () => {
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (!token) return;
+      if (!token) {
+        setIsCheckingAuth(false);
+        return;
+      }
 
       try {
         const response = await fetch('/api/auth/verify', {
@@ -68,6 +74,8 @@ function App() {
         }
       } catch {
         localStorage.removeItem(AUTH_TOKEN_KEY);
+      } finally {
+        setIsCheckingAuth(false);
       }
     };
 
@@ -86,7 +94,6 @@ function App() {
         const { token } = await response.json();
         localStorage.setItem(AUTH_TOKEN_KEY, token);
         setIsAuthenticated(true);
-        setShowLoginModal(false);
         return true;
       }
       return false;
@@ -567,12 +574,35 @@ function App() {
     return Math.abs(groupTotalPercentage - 100) > 0.01;
   })();
 
+  // 인증 확인 중
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p className="text-lg">로딩 중...</p>
+      </div>
+    );
+  }
+
   // 공유 링크 로딩 중
   if (isLoadingShared) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
         <p className="text-lg">공유된 시뮬레이션을 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  // 비로그인 + 공유 링크 없음 → 로그인 페이지 표시
+  if (!isAuthenticated && !hasSharedId) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">투자 시뮬레이터</h1>
+          <p className="text-slate-400">관리자 로그인이 필요합니다</p>
+        </div>
+        <LoginPage onLogin={handleLogin} />
       </div>
     );
   }
@@ -717,22 +747,14 @@ function App() {
 
             <div className="h-6 w-px bg-slate-700" />
 
-            {/* 로그인/로그아웃 버튼 */}
-            {isAuthenticated ? (
+            {/* 로그아웃 버튼 (로그인한 경우에만) */}
+            {isAuthenticated && (
               <button
                 onClick={handleLogout}
                 className="h-8 px-3 text-sm text-emerald-400 hover:bg-slate-700/50 rounded-md flex items-center transition-colors"
               >
                 <LogOut className="h-3.5 w-3.5 mr-1.5" />
                 로그아웃
-              </button>
-            ) : (
-              <button
-                onClick={() => setShowLoginModal(true)}
-                className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors"
-              >
-                <Lock className="h-3.5 w-3.5 mr-1.5" />
-                로그인
               </button>
             )}
           </div>
@@ -835,24 +857,15 @@ function App() {
         )}
       </div>
 
-      {/* 로그인 모달 */}
-      {showLoginModal && (
-        <LoginModal
-          onLogin={handleLogin}
-          onClose={() => setShowLoginModal(false)}
-        />
-      )}
-    </div>
+          </div>
   );
 }
 
-// 로그인 모달 컴포넌트
-function LoginModal({
-  onLogin,
-  onClose
+// 로그인 페이지 컴포넌트 (전체 화면)
+function LoginPage({
+  onLogin
 }: {
   onLogin: (password: string) => Promise<boolean>;
-  onClose: () => void;
 }) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -873,54 +886,37 @@ function LoginModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-[340px] overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            관리자 로그인
-          </h2>
+    <div className="bg-white/5 backdrop-blur-sm rounded-2xl shadow-2xl w-[360px] overflow-hidden border border-white/10">
+      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <div className="space-y-2">
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호를 입력하세요"
+            className="h-12 bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+            autoFocus
+          />
+          {error && (
+            <p className="text-sm text-red-400">{error}</p>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm text-slate-600">비밀번호</label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="비밀번호를 입력하세요"
-              className="h-10"
-              autoFocus
-            />
-            {error && (
-              <p className="text-sm text-red-500">{error}</p>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={onClose}
-            >
-              취소
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={isLoading || !password.trim()}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                '로그인'
-              )}
-            </Button>
-          </div>
-        </form>
-      </div>
+        <Button
+          type="submit"
+          className="w-full h-11 bg-blue-600 hover:bg-blue-500"
+          disabled={isLoading || !password.trim()}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Lock className="h-4 w-4 mr-2" />
+              로그인
+            </>
+          )}
+        </Button>
+      </form>
     </div>
   );
 }
