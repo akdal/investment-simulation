@@ -7,6 +7,8 @@ import { RoundEditor } from './components/RoundEditor';
 import { RoundTable } from './components/RoundTable';
 import { ChartPanel } from './components/ChartPanel';
 import { calculateCapTable } from './lib/calc';
+import { useMobileDetection } from './hooks/useMobileDetection';
+import { MobileApp } from './components/mobile';
 
 const STORAGE_KEY = 'investment-simulations';
 const CURRENT_SIM_KEY = 'current-simulation-id';
@@ -37,6 +39,17 @@ function createDefaultSimulation(name: string = '새 시뮬레이션'): Simulati
 }
 
 function App() {
+  const isMobile = useMobileDetection();
+
+  // 모바일에서는 MobileApp 렌더링
+  if (isMobile) {
+    return <MobileApp />;
+  }
+
+  return <DesktopApp />;
+}
+
+function DesktopApp() {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [currentSimId, setCurrentSimId] = useState<string | null>(null);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
