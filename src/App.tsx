@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Round, Investor, Simulation, Shareholding, InvestorGroup, Investment } from './types';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
-import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, LayoutGrid, Layers, BarChart3, Share2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, LayoutGrid, Layers, BarChart3, Share2, Loader2, Lock, LogOut } from 'lucide-react';
 import { RoundEditor } from './components/RoundEditor';
 import { RoundTable } from './components/RoundTable';
 import { ChartPanel } from './components/ChartPanel';
@@ -11,6 +11,7 @@ import { calculateCapTable } from './lib/calc';
 const STORAGE_KEY = 'investment-simulations';
 const CURRENT_SIM_KEY = 'current-simulation-id';
 const VIEW_MODE_KEY = 'investmentSimViewMode';
+const AUTH_TOKEN_KEY = 'investmentSimAuthToken';
 
 function createDefaultSimulation(name: string = '새 시뮬레이션'): Simulation {
   const now = new Date().toISOString();
@@ -40,8 +41,64 @@ function App() {
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isLoadingShared, setIsLoadingShared] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const isInitialized = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 인증 토큰 검증
+  useEffect(() => {
+    const verifyToken = async () => {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+        }
+      } catch {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+      }
+    };
+
+    verifyToken();
+  }, []);
+
+  const handleLogin = async (password: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      if (response.ok) {
+        const { token } = await response.json();
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        setIsAuthenticated(true);
+        setShowLoginModal(false);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    setIsAuthenticated(false);
+  };
 
   const currentSim = simulations.find(s => s.id === currentSimId) || null;
   const selectedRound = currentSim?.rounds.find(r => r.id === selectedRoundId) || null;
@@ -54,8 +111,9 @@ function App() {
       const sharedId = urlParams.get('id');
 
       if (sharedId) {
-        // 공유 링크로 접속한 경우
+        // 공유 링크로 접속한 경우 - 읽기 전용 모드
         setIsLoadingShared(true);
+        setIsViewOnly(true);
         try {
           const response = await fetch(`/api/sim/${sharedId}`);
           if (response.ok) {
@@ -68,15 +126,16 @@ function App() {
             };
             setSimulations([importedSim]);
             setCurrentSimId(importedSim.id);
-            // URL에서 id 파라미터 제거
-            window.history.replaceState({}, '', window.location.pathname);
+            // URL은 유지 (읽기 전용 모드 유지를 위해)
           } else {
             alert('공유된 시뮬레이션을 찾을 수 없습니다.');
+            setIsViewOnly(false);
             loadFromLocalStorage();
           }
         } catch (error) {
           console.error('Failed to load shared simulation:', error);
           alert('공유된 시뮬레이션을 불러오는데 실패했습니다.');
+          setIsViewOnly(false);
           loadFromLocalStorage();
         } finally {
           setIsLoadingShared(false);
@@ -483,6 +542,9 @@ function App() {
   const rounds = currentSim?.rounds || [];
   const investorGroups = currentSim?.investorGroups || [];
 
+  // 편집 가능 여부 (인증된 경우에만)
+  const canEdit = isAuthenticated && !isViewOnly;
+
   // 그룹 지분 불완전 경고 계산 (모든 투자자가 그룹에 할당되지 않은 경우)
   const isGroupIncomplete = (() => {
     if (rounds.length === 0 || investorGroups.length === 0) return false;
@@ -652,9 +714,48 @@ function App() {
               )}
               {!saveStatus && <span className="text-slate-500">자동 저장</span>}
             </div>
+
+            <div className="h-6 w-px bg-slate-700" />
+
+            {/* 로그인/로그아웃 버튼 */}
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="h-8 px-3 text-sm text-emerald-400 hover:bg-slate-700/50 rounded-md flex items-center transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                로그아웃
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors"
+              >
+                <Lock className="h-3.5 w-3.5 mr-1.5" />
+                로그인
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      {/* 읽기 전용 모드 알림 배너 */}
+      {isViewOnly && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 px-6 py-2 flex items-center justify-between">
+          <span className="text-sm text-amber-600">
+            공유된 시뮬레이션을 보고 있습니다 (읽기 전용)
+          </span>
+          <button
+            onClick={() => {
+              setIsViewOnly(false);
+              window.history.replaceState({}, '', window.location.pathname);
+            }}
+            className="text-sm text-amber-600 hover:text-amber-700 underline"
+          >
+            내 작업공간으로 이동
+          </button>
+        </div>
+      )}
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex overflow-hidden">
@@ -663,6 +764,7 @@ function App() {
           <SimulationPanel
             simulations={simulations}
             currentSimId={currentSimId}
+            canEdit={canEdit}
             onSelectSimulation={selectSimulation}
             onCreateSimulation={createSimulation}
             onDuplicateSimulation={duplicateSimulation}
@@ -684,14 +786,14 @@ function App() {
               setSelectedRoundId(roundId);
               setIsGroupPanelOpen(false); // 라운드 선택 시 그룹 패널 닫기
             }}
-            onAddRound={addRound}
+            onAddRound={canEdit ? addRound : undefined}
             getCapTableAtRound={getCapTableAtRound}
             isCompactView={isCompactView}
           />
         </div>
 
         {/* 오른쪽: 라운드 에디터 또는 그룹 관리 패널 */}
-        {selectedRound && !isGroupPanelOpen && (
+        {selectedRound && !isGroupPanelOpen && canEdit && (
           <RoundEditor
             round={selectedRound}
             previousRoundShares={previousRoundShares}
@@ -709,6 +811,7 @@ function App() {
             investorGroups={investorGroups}
             rounds={rounds}
             isGroupIncomplete={isGroupIncomplete}
+            canEdit={canEdit}
             onAddInvestor={onAddInvestor}
             onUpdateInvestor={onUpdateInvestor}
             onDeleteInvestor={onDeleteInvestor}
@@ -731,6 +834,93 @@ function App() {
           />
         )}
       </div>
+
+      {/* 로그인 모달 */}
+      {showLoginModal && (
+        <LoginModal
+          onLogin={handleLogin}
+          onClose={() => setShowLoginModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// 로그인 모달 컴포넌트
+function LoginModal({
+  onLogin,
+  onClose
+}: {
+  onLogin: (password: string) => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password.trim()) return;
+
+    setIsLoading(true);
+    setError('');
+
+    const success = await onLogin(password);
+    if (!success) {
+      setError('비밀번호가 올바르지 않습니다');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-2xl w-[340px] overflow-hidden">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-4">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            관리자 로그인
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm text-slate-600">비밀번호</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호를 입력하세요"
+              className="h-10"
+              autoFocus
+            />
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={onClose}
+            >
+              취소
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={isLoading || !password.trim()}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                '로그인'
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -739,6 +929,7 @@ function App() {
 function SimulationPanel({
   simulations,
   currentSimId,
+  canEdit,
   onSelectSimulation,
   onCreateSimulation,
   onDuplicateSimulation,
@@ -749,6 +940,7 @@ function SimulationPanel({
 }: {
   simulations: Simulation[];
   currentSimId: string | null;
+  canEdit: boolean;
   onSelectSimulation: (simId: string) => void;
   onCreateSimulation: () => void;
   onDuplicateSimulation: (simId: string) => void;
@@ -848,7 +1040,7 @@ function SimulationPanel({
                   </div>
 
                   {/* 액션 버튼들 */}
-                  {!isEditing && (
+                  {!isEditing && canEdit && (
                     <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <button
                         onClick={(e) => {
@@ -892,15 +1084,17 @@ function SimulationPanel({
       </div>
 
       {/* 새 시뮬레이션 버튼 */}
-      <div className="p-3 border-t border-slate-100">
-        <button
-          onClick={onCreateSimulation}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg border border-dashed border-blue-300 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          새 시뮬레이션
-        </button>
-      </div>
+      {canEdit && (
+        <div className="p-3 border-t border-slate-100">
+          <button
+            onClick={onCreateSimulation}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg border border-dashed border-blue-300 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            새 시뮬레이션
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -911,6 +1105,7 @@ function InvestorPanel({
   investorGroups,
   rounds,
   isGroupIncomplete,
+  canEdit,
   onAddInvestor,
   onUpdateInvestor,
   onDeleteInvestor,
@@ -925,6 +1120,7 @@ function InvestorPanel({
   investorGroups: InvestorGroup[];
   rounds: Round[];
   isGroupIncomplete: boolean;
+  canEdit: boolean;
   onAddInvestor: (name: string, type: Investor['type']) => Investor;
   onUpdateInvestor: (investorId: string, name: string) => void;
   onDeleteInvestor: (investorId: string) => void;
@@ -1016,34 +1212,39 @@ function InvestorPanel({
                         <div className="text-sm truncate">{inv.name}</div>
                       </div>
                       <select
-                        className="h-6 px-1 text-xs border border-slate-200 rounded bg-white"
+                        className="h-6 px-1 text-xs border border-slate-200 rounded bg-white disabled:opacity-50"
                         value={inv.groupId || ''}
                         onChange={(e) => onAssignInvestor(inv.id, e.target.value || undefined)}
+                        disabled={!canEdit}
                       >
                         <option value="">그룹 없음</option>
                         {[...investorGroups].sort((a, b) => (a.order || 0) - (b.order || 0)).map(g => (
                           <option key={g.id} value={g.id}>{g.name}</option>
                         ))}
                       </select>
-                      <button
-                        onClick={() => setEditingInvestorId(inv.id)}
-                        className="p-1 rounded"
-                        title="이름 변경"
-                      >
-                        <Pencil className="h-3 w-3 text-slate-400" />
-                      </button>
-                      {!isUsed && (
-                        <button
-                          onClick={() => {
-                            if (confirm(`"${inv.name}" 투자자를 삭제하시겠습니까?`)) {
-                              onDeleteInvestor(inv.id);
-                            }
-                          }}
-                          className="p-1 rounded"
-                          title="삭제"
-                        >
-                          <Trash2 className="h-3 w-3 text-slate-400" />
-                        </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => setEditingInvestorId(inv.id)}
+                            className="p-1 rounded"
+                            title="이름 변경"
+                          >
+                            <Pencil className="h-3 w-3 text-slate-400" />
+                          </button>
+                          {!isUsed && (
+                            <button
+                              onClick={() => {
+                                if (confirm(`"${inv.name}" 투자자를 삭제하시겠습니까?`)) {
+                                  onDeleteInvestor(inv.id);
+                                }
+                              }}
+                              className="p-1 rounded"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-3 w-3 text-slate-400" />
+                            </button>
+                          )}
+                        </>
                       )}
                     </>
                   )}
@@ -1053,18 +1254,20 @@ function InvestorPanel({
           </div>
 
           {/* 새 투자자 추가 */}
-          <div className="flex gap-2">
-            <Input
-              value={newInvestorName}
-              onChange={(e) => setNewInvestorName(e.target.value)}
-              placeholder="새 투자자 이름"
-              className="h-8 text-sm"
-              onKeyDown={(e) => !e.nativeEvent.isComposing && e.key === 'Enter' && handleAddInvestor()}
-            />
-            <Button size="sm" className="h-8 px-3" onClick={handleAddInvestor}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="flex gap-2">
+              <Input
+                value={newInvestorName}
+                onChange={(e) => setNewInvestorName(e.target.value)}
+                placeholder="새 투자자 이름"
+                className="h-8 text-sm"
+                onKeyDown={(e) => !e.nativeEvent.isComposing && e.key === 'Enter' && handleAddInvestor()}
+              />
+              <Button size="sm" className="h-8 px-3" onClick={handleAddInvestor}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 그룹 섹션 */}
@@ -1106,42 +1309,44 @@ function InvestorPanel({
                     ) : (
                       <>
                         <span className="font-medium text-sm">{group.name}</span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => onMoveGroup(group.id, 'up')}
-                            className={`p-1 rounded ${isFirst ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}
-                            disabled={isFirst}
-                            title="위로 이동"
-                          >
-                            <ChevronUp className="h-3 w-3 text-slate-400" />
-                          </button>
-                          <button
-                            onClick={() => onMoveGroup(group.id, 'down')}
-                            className={`p-1 rounded ${isLast ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}
-                            disabled={isLast}
-                            title="아래로 이동"
-                          >
-                            <ChevronDown className="h-3 w-3 text-slate-400" />
-                          </button>
-                          <button
-                            onClick={() => setEditingGroupId(group.id)}
-                            className="p-1 hover:bg-slate-100 rounded"
-                            title="이름 변경"
-                          >
-                            <Pencil className="h-3 w-3 text-slate-400" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`"${group.name}" 그룹을 삭제하시겠습니까?`)) {
-                                onDeleteGroup(group.id);
-                              }
-                            }}
-                            className="p-1 hover:bg-slate-100 rounded"
-                            title="삭제"
-                          >
-                            <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
-                          </button>
-                        </div>
+                        {canEdit && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => onMoveGroup(group.id, 'up')}
+                              className={`p-1 rounded ${isFirst ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}
+                              disabled={isFirst}
+                              title="위로 이동"
+                            >
+                              <ChevronUp className="h-3 w-3 text-slate-400" />
+                            </button>
+                            <button
+                              onClick={() => onMoveGroup(group.id, 'down')}
+                              className={`p-1 rounded ${isLast ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100'}`}
+                              disabled={isLast}
+                              title="아래로 이동"
+                            >
+                              <ChevronDown className="h-3 w-3 text-slate-400" />
+                            </button>
+                            <button
+                              onClick={() => setEditingGroupId(group.id)}
+                              className="p-1 hover:bg-slate-100 rounded"
+                              title="이름 변경"
+                            >
+                              <Pencil className="h-3 w-3 text-slate-400" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`"${group.name}" 그룹을 삭제하시겠습니까?`)) {
+                                  onDeleteGroup(group.id);
+                                }
+                              }}
+                              className="p-1 hover:bg-slate-100 rounded"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -1169,18 +1374,20 @@ function InvestorPanel({
           </div>
 
           {/* 새 그룹 추가 */}
-          <div className="flex gap-2">
-            <Input
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="새 그룹 이름"
-              className="h-8 text-sm"
-              onKeyDown={(e) => !e.nativeEvent.isComposing && e.key === 'Enter' && handleAddGroup()}
-            />
-            <Button size="sm" className="h-8 px-3" onClick={handleAddGroup}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="flex gap-2">
+              <Input
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="새 그룹 이름"
+                className="h-8 text-sm"
+                onKeyDown={(e) => !e.nativeEvent.isComposing && e.key === 'Enter' && handleAddGroup()}
+              />
+              <Button size="sm" className="h-8 px-3" onClick={handleAddGroup}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

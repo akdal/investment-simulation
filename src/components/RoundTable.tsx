@@ -8,7 +8,7 @@ interface RoundTableProps {
     investorGroups: InvestorGroup[];
     selectedRoundId: string | null;
     onSelectRound: (roundId: string) => void;
-    onAddRound: () => void;
+    onAddRound?: () => void;
     getCapTableAtRound: (roundIndex: number) => Shareholding[];
     isCompactView?: boolean;
 }
@@ -135,14 +135,20 @@ export function RoundTable({
         return (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
                 <p className="mb-4 text-lg">아직 라운드가 없습니다.</p>
-                <p className="mb-6 text-sm text-slate-400">첫 번째 라운드를 추가해서 시뮬레이션을 시작하세요.</p>
-                <button
-                    onClick={onAddRound}
-                    className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-                >
-                    <Plus className="h-5 w-5" />
-                    첫 번째 라운드 추가
-                </button>
+                {onAddRound ? (
+                    <>
+                        <p className="mb-6 text-sm text-slate-400">첫 번째 라운드를 추가해서 시뮬레이션을 시작하세요.</p>
+                        <button
+                            onClick={onAddRound}
+                            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+                        >
+                            <Plus className="h-5 w-5" />
+                            첫 번째 라운드 추가
+                        </button>
+                    </>
+                ) : (
+                    <p className="text-sm text-slate-400">공유된 시뮬레이션에는 데이터가 없습니다.</p>
+                )}
             </div>
         );
     }
@@ -193,14 +199,18 @@ export function RoundTable({
                                     </th>
                                 );
                             })}
-                            <th className="w-[80px] min-w-[80px] py-4 border-l border-slate-200">
-                                <button
-                                    onClick={onAddRound}
-                                    className="mx-auto flex items-center justify-center w-7 h-7 rounded border border-dashed border-slate-300 hover:border-slate-500 hover:bg-slate-50 transition-colors"
-                                >
-                                    <Plus className="h-4 w-4 text-slate-400" />
-                                </button>
-                            </th>
+                            {onAddRound ? (
+                                <th className="w-[80px] min-w-[80px] py-4 border-l border-slate-200">
+                                    <button
+                                        onClick={onAddRound}
+                                        className="mx-auto flex items-center justify-center w-7 h-7 rounded border border-dashed border-slate-300 hover:border-slate-500 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <Plus className="h-4 w-4 text-slate-400" />
+                                    </button>
+                                </th>
+                            ) : (
+                                <th className="w-[40px] min-w-[40px] py-4 border-l border-slate-200"></th>
+                            )}
                             <th className="w-[120px] min-w-[120px] py-4 border-l border-slate-200 border-r border-slate-200 text-center">
                                 <div className="font-bold text-slate-900">요약</div>
                                 <div className="text-xs font-normal text-slate-400 mt-0.5">Summary</div>
