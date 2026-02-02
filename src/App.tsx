@@ -615,16 +615,20 @@ function App() {
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 flex-shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* 시뮬레이션 패널 토글 버튼 */}
-            <button
-              onClick={() => setIsSimPanelOpen(!isSimPanelOpen)}
-              className={`p-2 rounded-lg transition-colors ${isSimPanelOpen ? 'bg-slate-700 text-blue-400' : 'hover:bg-slate-700/50 text-slate-400'}`}
-              title={isSimPanelOpen ? '시뮬레이션 목록 닫기' : '시뮬레이션 목록 열기'}
-            >
-              {isSimPanelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
-            </button>
+            {/* 시뮬레이션 패널 토글 버튼 - 로그인 시에만 */}
+            {!isViewOnly && (
+              <>
+                <button
+                  onClick={() => setIsSimPanelOpen(!isSimPanelOpen)}
+                  className={`p-2 rounded-lg transition-colors ${isSimPanelOpen ? 'bg-slate-700 text-blue-400' : 'hover:bg-slate-700/50 text-slate-400'}`}
+                  title={isSimPanelOpen ? '시뮬레이션 목록 닫기' : '시뮬레이션 목록 열기'}
+                >
+                  {isSimPanelOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+                </button>
 
-            <div className="h-6 w-px bg-slate-700" />
+                <div className="h-6 w-px bg-slate-700" />
+              </>
+            )}
 
             <h1 className="text-xl font-bold text-white">
               투자 시뮬레이터 <span className="text-xs font-normal text-slate-400">by Huey</span>
@@ -652,16 +656,19 @@ function App() {
               심플 뷰
             </button>
 
-            <button
-              onClick={() => setIsGroupPanelOpen(!isGroupPanelOpen)}
-              className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isGroupPanelOpen ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
-            >
-              <Users className="h-3.5 w-3.5 mr-1.5" />
-              투자자 관리
-              {isGroupIncomplete && (
-                <span className="ml-1.5 w-2 h-2 rounded-full bg-amber-500" />
-              )}
-            </button>
+            {/* 투자자 관리 - 로그인 시에만 */}
+            {!isViewOnly && (
+              <button
+                onClick={() => setIsGroupPanelOpen(!isGroupPanelOpen)}
+                className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isGroupPanelOpen ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
+              >
+                <Users className="h-3.5 w-3.5 mr-1.5" />
+                투자자 관리
+                {isGroupIncomplete && (
+                  <span className="ml-1.5 w-2 h-2 rounded-full bg-amber-500" />
+                )}
+              </button>
+            )}
 
             <button
               onClick={() => setIsChartPanelOpen(!isChartPanelOpen)}
@@ -671,95 +678,98 @@ function App() {
               차트 분석
             </button>
 
-            <div className="h-6 w-px bg-slate-700" />
+            {/* 공유/내보내기/가져오기/저장 - 로그인 시에만 */}
+            {!isViewOnly && (
+              <>
+                <div className="h-6 w-px bg-slate-700" />
 
-            {/* 공유 링크 버튼 */}
-            <div className="relative">
-              <button
-                onClick={handleShare}
-                disabled={isSharing || !currentSim}
-                className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${
-                  shareUrl
-                    ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30'
-                    : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
-                } disabled:opacity-50`}
-              >
-                {isSharing ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                ) : shareUrl ? (
-                  <Check className="h-3.5 w-3.5 mr-1.5" />
-                ) : (
-                  <Share2 className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                {shareUrl ? '링크 복사됨!' : '공유 링크'}
-              </button>
-              {shareUrl && (
-                <div className="absolute top-full right-0 mt-2 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 min-w-[280px]">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={shareUrl}
-                      readOnly
-                      className="flex-1 px-2 py-1 text-xs bg-slate-700 border border-slate-600 rounded text-slate-200"
-                    />
-                    <button
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(shareUrl);
-                      }}
-                      className="p-1.5 hover:bg-slate-700 rounded"
-                    >
-                      <Copy className="h-3.5 w-3.5 text-slate-300" />
-                    </button>
-                  </div>
+                {/* 공유 링크 버튼 */}
+                <div className="relative">
                   <button
-                    onClick={() => setShareUrl(null)}
-                    className="mt-2 w-full text-xs text-slate-400 hover:text-slate-200"
+                    onClick={handleShare}
+                    disabled={isSharing || !currentSim}
+                    className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${
+                      shareUrl
+                        ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30'
+                        : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
+                    } disabled:opacity-50`}
                   >
-                    닫기
+                    {isSharing ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : shareUrl ? (
+                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                    ) : (
+                      <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    {shareUrl ? '링크 복사됨!' : '공유 링크'}
                   </button>
+                  {shareUrl && (
+                    <div className="absolute top-full right-0 mt-2 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 min-w-[280px]">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={shareUrl}
+                          readOnly
+                          className="flex-1 px-2 py-1 text-xs bg-slate-700 border border-slate-600 rounded text-slate-200"
+                        />
+                        <button
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(shareUrl);
+                          }}
+                          className="p-1.5 hover:bg-slate-700 rounded"
+                        >
+                          <Copy className="h-3.5 w-3.5 text-slate-300" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setShareUrl(null)}
+                        className="mt-2 w-full text-xs text-slate-400 hover:text-slate-200"
+                      >
+                        닫기
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="h-6 w-px bg-slate-700" />
+                <div className="h-6 w-px bg-slate-700" />
 
-            <button onClick={handleExport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일로 내보내기">
-              <Download className="h-3.5 w-3.5 mr-1.5" />
-              내보내기
-            </button>
-            <button onClick={handleImport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일 가져오기">
-              <Upload className="h-3.5 w-3.5 mr-1.5" />
-              가져오기
-            </button>
+                <button onClick={handleExport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일로 내보내기">
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  내보내기
+                </button>
+                <button onClick={handleImport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일 가져오기">
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  가져오기
+                </button>
 
-            <div className="h-6 w-px bg-slate-700" />
+                <div className="h-6 w-px bg-slate-700" />
 
-            <button onClick={handleManualSave} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors">
-              <Save className="h-3.5 w-3.5 mr-1.5" />
-              저장
-            </button>
+                <button onClick={handleManualSave} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors">
+                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                  저장
+                </button>
 
-            <div className="flex items-center justify-end text-xs w-[70px]">
-              {saveStatus === 'saving' && <span className="text-blue-400">저장 중...</span>}
-              {saveStatus === 'saved' && (
-                <span className="text-emerald-400 flex items-center gap-1">
-                  <Check className="h-3 w-3" /> 저장됨
-                </span>
-              )}
-              {!saveStatus && <span className="text-slate-500">자동 저장</span>}
-            </div>
+                <div className="flex items-center justify-end text-xs w-[70px]">
+                  {saveStatus === 'saving' && <span className="text-blue-400">저장 중...</span>}
+                  {saveStatus === 'saved' && (
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <Check className="h-3 w-3" /> 저장됨
+                    </span>
+                  )}
+                  {!saveStatus && <span className="text-slate-500">자동 저장</span>}
+                </div>
 
-            <div className="h-6 w-px bg-slate-700" />
+                <div className="h-6 w-px bg-slate-700" />
 
-            {/* 로그아웃 버튼 (로그인한 경우에만) */}
-            {isAuthenticated && (
-              <button
-                onClick={handleLogout}
-                className="h-8 px-3 text-sm text-emerald-400 hover:bg-slate-700/50 rounded-md flex items-center transition-colors"
-              >
-                <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                로그아웃
-              </button>
+                {/* 로그아웃 버튼 */}
+                <button
+                  onClick={handleLogout}
+                  className="h-8 px-3 text-sm text-emerald-400 hover:bg-slate-700/50 rounded-md flex items-center transition-colors"
+                >
+                  <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                  로그아웃
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -785,8 +795,8 @@ function App() {
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 왼쪽: 시뮬레이션 패널 */}
-        {isSimPanelOpen && (
+        {/* 왼쪽: 시뮬레이션 패널 - 로그인 시에만 */}
+        {isSimPanelOpen && !isViewOnly && (
           <SimulationPanel
             simulations={simulations}
             currentSimId={currentSimId}
@@ -831,7 +841,7 @@ function App() {
           />
         )}
 
-        {isGroupPanelOpen && (
+        {isGroupPanelOpen && !isViewOnly && (
           <InvestorPanel
             investors={investors}
             investorGroups={investorGroups}
