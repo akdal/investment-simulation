@@ -599,7 +599,9 @@ function App() {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">투자 시뮬레이터</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            투자 시뮬레이터 <span className="text-base font-normal text-slate-400">by Huey</span>
+          </h1>
           <p className="text-slate-400">관리자 로그인이 필요합니다</p>
         </div>
         <LoginPage onLogin={handleLogin} />
@@ -624,7 +626,9 @@ function App() {
 
             <div className="h-6 w-px bg-slate-700" />
 
-            <h1 className="text-xl font-bold text-white">투자 시뮬레이터</h1>
+            <h1 className="text-xl font-bold text-white">
+              투자 시뮬레이터 <span className="text-xs font-normal text-slate-400">by Huey</span>
+            </h1>
 
             {/* 현재 시뮬레이션 이름 표시 */}
             {currentSim && (
