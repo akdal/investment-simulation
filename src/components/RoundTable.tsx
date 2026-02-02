@@ -2,6 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import type { Round, Investor, Shareholding, InvestorGroup } from '../types';
 import { Plus, AlertCircle, ChevronRight } from 'lucide-react';
 
+interface DisplaySettings {
+    showShares: boolean;
+    showActivity: boolean;
+}
+
 interface RoundTableProps {
     rounds: Round[];
     investors: Investor[];
@@ -10,7 +15,7 @@ interface RoundTableProps {
     onSelectRound: (roundId: string) => void;
     onAddRound?: () => void;
     getCapTableAtRound: (roundIndex: number) => Shareholding[];
-    isCompactView?: boolean;
+    displaySettings?: DisplaySettings;
 }
 
 export function RoundTable({
@@ -21,7 +26,7 @@ export function RoundTable({
     onSelectRound,
     onAddRound,
     getCapTableAtRound,
-    isCompactView = false,
+    displaySettings = { showShares: false, showActivity: true },
 }: RoundTableProps) {
     const fmt = (n: number) => n.toLocaleString();
 
@@ -453,27 +458,32 @@ export function RoundTable({
 
                                                                 {/* 활동 + 평가금액 + 주수를 한 줄에 */}
                                                                 <div className="flex items-center justify-end gap-1 text-[10px]">
-                                                                    {newInvestmentShares > 0 && (
-                                                                        <span className="text-emerald-600 font-medium whitespace-nowrap">
-                                                                            투자 {fmtMoney(newInvestmentAmount)}
-                                                                        </span>
-                                                                    )}
-                                                                    {secondaryBuyShares > 0 && (
-                                                                        <span className="text-amber-600 font-medium whitespace-nowrap">
-                                                                            매수 {fmtMoney(secondaryBuyAmount)}
-                                                                        </span>
-                                                                    )}
-                                                                    {secondarySellShares > 0 && (
-                                                                        <span className="text-violet-600 font-medium whitespace-nowrap">
-                                                                            매도 {fmtMoney(secondarySellAmount)}
-                                                                        </span>
+                                                                    {/* 활동 정보 - 설정에 따라 표시 */}
+                                                                    {displaySettings.showActivity && (
+                                                                        <>
+                                                                            {newInvestmentShares > 0 && (
+                                                                                <span className="text-emerald-600 font-medium whitespace-nowrap">
+                                                                                    투자 {fmtMoney(newInvestmentAmount)}
+                                                                                </span>
+                                                                            )}
+                                                                            {secondaryBuyShares > 0 && (
+                                                                                <span className="text-amber-600 font-medium whitespace-nowrap">
+                                                                                    매수 {fmtMoney(secondaryBuyAmount)}
+                                                                                </span>
+                                                                            )}
+                                                                            {secondarySellShares > 0 && (
+                                                                                <span className="text-violet-600 font-medium whitespace-nowrap">
+                                                                                    매도 {fmtMoney(secondarySellAmount)}
+                                                                                </span>
+                                                                            )}
+                                                                        </>
                                                                     )}
                                                                     {/* 평가금액 - 항상 표시 */}
                                                                     <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
                                                                         {fmtMoney(Math.round(value))}
                                                                     </span>
-                                                                    {/* 주식수 - 상세 뷰에서만 */}
-                                                                    {!isCompactView && (
+                                                                    {/* 주식수 - 설정에 따라 표시 */}
+                                                                    {displaySettings.showShares && (
                                                                         <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
                                                                             {fmt(shares)}주
                                                                         </span>
@@ -659,27 +669,32 @@ export function RoundTable({
 
                                                                         {/* 활동 + 평가금액 + 주수를 한 줄에 */}
                                                                         <div className="flex items-center justify-end gap-1 text-[10px]">
-                                                                            {groupNewInvestmentShares > 0 && (
-                                                                                <span className="text-emerald-600 font-medium whitespace-nowrap">
-                                                                                    투자 {fmtMoney(groupNewInvestmentAmount)}
-                                                                                </span>
-                                                                            )}
-                                                                            {groupSecondaryBuyShares > 0 && (
-                                                                                <span className="text-amber-600 font-medium whitespace-nowrap">
-                                                                                    매수 {fmtMoney(groupSecondaryBuyAmount)}
-                                                                                </span>
-                                                                            )}
-                                                                            {groupSecondarySellShares > 0 && (
-                                                                                <span className="text-violet-600 font-medium whitespace-nowrap">
-                                                                                    매도 {fmtMoney(groupSecondarySellAmount)}
-                                                                                </span>
+                                                                            {/* 활동 정보 - 설정에 따라 표시 */}
+                                                                            {displaySettings.showActivity && (
+                                                                                <>
+                                                                                    {groupNewInvestmentShares > 0 && (
+                                                                                        <span className="text-emerald-600 font-medium whitespace-nowrap">
+                                                                                            투자 {fmtMoney(groupNewInvestmentAmount)}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {groupSecondaryBuyShares > 0 && (
+                                                                                        <span className="text-amber-600 font-medium whitespace-nowrap">
+                                                                                            매수 {fmtMoney(groupSecondaryBuyAmount)}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {groupSecondarySellShares > 0 && (
+                                                                                        <span className="text-violet-600 font-medium whitespace-nowrap">
+                                                                                            매도 {fmtMoney(groupSecondarySellAmount)}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </>
                                                                             )}
                                                                             {/* 평가금액 - 항상 표시 */}
                                                                             <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
                                                                                 {fmtMoney(Math.round(value))}
                                                                             </span>
-                                                                            {/* 주식수 - 상세 뷰에서만 */}
-                                                                            {!isCompactView && (
+                                                                            {/* 주식수 - 설정에 따라 표시 */}
+                                                                            {displaySettings.showShares && (
                                                                                 <span className="px-1 py-0.5 bg-slate-100 text-slate-500 rounded whitespace-nowrap">
                                                                                     {fmt(groupShares)}주
                                                                                 </span>

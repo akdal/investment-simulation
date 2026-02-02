@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Round, Investor, Simulation, Shareholding, InvestorGroup, Investment } from './types';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
-import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, LayoutGrid, Layers, BarChart3, Share2, Loader2, Lock, LogOut } from 'lucide-react';
+import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, BarChart3, Share2, Loader2, Lock, LogOut, Settings2 } from 'lucide-react';
 import { RoundEditor } from './components/RoundEditor';
 import { RoundTable } from './components/RoundTable';
 import { ChartPanel } from './components/ChartPanel';
@@ -10,8 +10,18 @@ import { calculateCapTable } from './lib/calc';
 
 const STORAGE_KEY = 'investment-simulations';
 const CURRENT_SIM_KEY = 'current-simulation-id';
-const VIEW_MODE_KEY = 'investmentSimViewMode';
+const DISPLAY_SETTINGS_KEY = 'investmentSimDisplaySettings';
 const AUTH_TOKEN_KEY = 'investmentSimAuthToken';
+
+interface DisplaySettings {
+  showShares: boolean;
+  showActivity: boolean;
+}
+
+const defaultDisplaySettings: DisplaySettings = {
+  showShares: false,
+  showActivity: true,
+};
 
 function createDefaultSimulation(name: string = '새 시뮬레이션'): Simulation {
   const now = new Date().toISOString();
@@ -34,10 +44,18 @@ function App() {
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | null>(null);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false);
   const [isChartPanelOpen, setIsChartPanelOpen] = useState(false);
-  const [isCompactView, setIsCompactView] = useState(() => {
-    const saved = localStorage.getItem(VIEW_MODE_KEY);
-    return saved !== 'detailed';
+  const [displaySettings, setDisplaySettings] = useState<DisplaySettings>(() => {
+    const saved = localStorage.getItem(DISPLAY_SETTINGS_KEY);
+    if (saved) {
+      try {
+        return { ...defaultDisplaySettings, ...JSON.parse(saved) };
+      } catch {
+        return defaultDisplaySettings;
+      }
+    }
+    return defaultDisplaySettings;
   });
+  const [isDisplaySettingsOpen, setIsDisplaySettingsOpen] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isLoadingShared, setIsLoadingShared] = useState(false);
@@ -177,10 +195,10 @@ function App() {
     loadData();
   }, []);
 
-  // 뷰 모드 저장
+  // 보기 설정 저장
   useEffect(() => {
-    localStorage.setItem(VIEW_MODE_KEY, isCompactView ? 'compact' : 'detailed');
-  }, [isCompactView]);
+    localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(displaySettings));
+  }, [displaySettings]);
 
   // 자동 저장
   useEffect(() => {
@@ -644,17 +662,50 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsCompactView(!isCompactView)}
-              className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${
-                isCompactView
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                  : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
-              }`}
-            >
-              {isCompactView ? <LayoutGrid className="h-3.5 w-3.5 mr-1.5" /> : <Layers className="h-3.5 w-3.5 mr-1.5" />}
-              심플 뷰
-            </button>
+            {/* 보기 설정 드롭다운 */}
+            <div className="relative">
+              <button
+                onClick={() => setIsDisplaySettingsOpen(!isDisplaySettingsOpen)}
+                className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${
+                  isDisplaySettingsOpen
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                    : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
+                }`}
+              >
+                <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+                보기 설정
+              </button>
+              {isDisplaySettingsOpen && (
+                <div className="absolute top-full left-0 mt-2 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 min-w-[180px]">
+                  <div className="space-y-1">
+                    <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700/50 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={displaySettings.showShares}
+                        onChange={(e) => setDisplaySettings(s => ({ ...s, showShares: e.target.checked }))}
+                        className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-slate-200">주식수 표시</span>
+                    </label>
+                    <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700/50 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={displaySettings.showActivity}
+                        onChange={(e) => setDisplaySettings(s => ({ ...s, showActivity: e.target.checked }))}
+                        className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-slate-200">활동 정보 표시</span>
+                    </label>
+                  </div>
+                  <button
+                    onClick={() => setIsDisplaySettingsOpen(false)}
+                    className="mt-2 w-full text-xs text-slate-400 hover:text-slate-200 py-1"
+                  >
+                    닫기
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* 투자자 관리 - 로그인 시에만 */}
             {!isViewOnly && (
@@ -824,7 +875,7 @@ function App() {
             }}
             onAddRound={canEdit ? addRound : undefined}
             getCapTableAtRound={getCapTableAtRound}
-            isCompactView={isCompactView}
+            displaySettings={displaySettings}
           />
         </div>
 
