@@ -155,7 +155,7 @@ export function RoundTable({
             {/* 오른쪽 그라데이션 페이드 & 화살표 힌트 */}
             {canScrollRight && (
                 <div className="absolute right-0 top-0 h-full z-30 pointer-events-none flex items-center">
-                    <div className="w-32 h-full bg-gradient-to-l from-white via-white/70 to-transparent" />
+                    <div className="w-32 h-full bg-gradient-to-l from-white/60 via-white/30 to-transparent" />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-white rounded-full p-1.5 shadow-md border border-slate-300">
                         <ChevronRight className="w-5 h-5 text-slate-500" />
                     </div>
@@ -205,7 +205,7 @@ export function RoundTable({
                                 <div className="font-bold text-slate-900">요약</div>
                                 <div className="text-xs font-normal text-slate-400 mt-0.5">Summary</div>
                             </th>
-                            <th className="w-auto border-r border-slate-200"></th>
+                            <th className="w-auto"></th>
                         </tr>
 
                         {/* 라운드 요약 정보 */}

@@ -44,6 +44,7 @@ export function RoundEditor({
     );
     const [isAddingNew, setIsAddingNew] = useState(false);
     const [isSelectingExisting, setIsSelectingExisting] = useState(false);
+    const [isAddingSecondary, setIsAddingSecondary] = useState(false);
     const [newInvestorName, setNewInvestorName] = useState('');
 
     const fmt = (n: number) => n.toLocaleString();
@@ -442,6 +443,26 @@ export function RoundEditor({
                         <span className="text-emerald-600">투자금</span>
                         <span className="text-emerald-600">{fmt(round.investmentAmount)}원</span>
                     </div>
+                    {(() => {
+                        const secondaryInvestments = round.investments.filter(inv => inv.isSecondary);
+                        const secondaryShares = secondaryInvestments.reduce((sum, inv) => sum + inv.shares, 0);
+                        const secondaryAmount = secondaryInvestments.reduce((sum, inv) => sum + inv.amount, 0);
+                        if (secondaryShares > 0 || secondaryAmount > 0) {
+                            return (
+                                <>
+                                    <div className="flex justify-between border-t border-slate-100 pt-2.5">
+                                        <span className="text-violet-600">구주 거래량</span>
+                                        <span className="text-violet-600">{fmt(secondaryShares)}주</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-violet-600">구주 거래금액</span>
+                                        <span className="text-violet-600">{fmt(secondaryAmount)}원</span>
+                                    </div>
+                                </>
+                            );
+                        }
+                        return null;
+                    })()}
                     <div className="flex justify-between border-t border-slate-100 pt-2.5">
                         <span className="text-slate-600 font-semibold">포스트 머니</span>
                         <span className="font-semibold">{fmt(round.postMoneyValuation)}원</span>
@@ -528,7 +549,7 @@ export function RoundEditor({
 
                                     {/* 개별 거래 리스트 */}
                                     <div className="space-y-3">
-                                        {group.investments.map((inv, idx) => {
+                                        {group.investments.map((inv) => {
                                             return (
                                                 <div key={inv.id} className="bg-white rounded-lg p-2.5 border border-violet-100 relative">
                                                     {/* 개별 거래 삭제 버튼 */}
@@ -539,11 +560,6 @@ export function RoundEditor({
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </button>
-
-                                                    {/* 거래 번호 */}
-                                                    <div className="text-[11px] text-violet-500 font-medium mb-1.5">
-                                                        거래 {idx + 1}
-                                                    </div>
 
                                                     {/* 매도자 선택 */}
                                                     <div className="mb-2 flex items-center gap-1.5 text-sm">
@@ -612,7 +628,7 @@ export function RoundEditor({
                         })}
                     </div>
 
-                    {/* 투자자 추가 버튼 */}
+                    {/* 신주 발행 투자자 추가 버튼 */}
                     <div className="space-y-2">
                         {isAddingNew ? (
                             <div className="flex gap-2">
@@ -653,17 +669,51 @@ export function RoundEditor({
                                 <Button
                                     variant="outline"
                                     className="flex-1"
-                                    onClick={() => { setIsSelectingExisting(true); setIsAddingNew(false); }}
+                                    onClick={() => { setIsSelectingExisting(true); setIsAddingNew(false); setIsAddingSecondary(false); }}
                                 >
                                     기존 투자자 추가
                                 </Button>
                                 <Button
                                     className="flex-1"
-                                    onClick={() => { setIsAddingNew(true); setIsSelectingExisting(false); }}
+                                    onClick={() => { setIsAddingNew(true); setIsSelectingExisting(false); setIsAddingSecondary(false); }}
                                 >
                                     <Plus className="mr-1 h-4 w-4" /> 신규 투자자
                                 </Button>
                             </div>
+                        )}
+                    </div>
+
+                    {/* 구주 매매 추가 버튼 */}
+                    <div className="space-y-2 pt-2 border-t border-slate-200">
+                        <span className="text-sm font-semibold text-violet-700">구주 매매</span>
+                        {isAddingSecondary ? (
+                            <div className="flex gap-2">
+                                <select
+                                    autoFocus
+                                    className="flex-1 h-9 px-3 rounded border border-violet-200 bg-white text-sm"
+                                    defaultValue=""
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            addSecondaryTransaction(e.target.value);
+                                            setIsAddingSecondary(false);
+                                        }
+                                    }}
+                                >
+                                    <option value="">매수자 선택...</option>
+                                    {allInvestors.map(inv => (
+                                        <option key={inv.id} value={inv.id}>{inv.name}</option>
+                                    ))}
+                                </select>
+                                <Button size="sm" variant="outline" className="h-9" onClick={() => setIsAddingSecondary(false)}>취소</Button>
+                            </div>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="w-full border-violet-200 text-violet-600 hover:bg-violet-50"
+                                onClick={() => { setIsAddingSecondary(true); setIsAddingNew(false); setIsSelectingExisting(false); }}
+                            >
+                                <Plus className="mr-1 h-4 w-4" /> 구주 매매 추가
+                            </Button>
                         )}
                     </div>
                 </div>
