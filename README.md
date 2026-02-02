@@ -12,7 +12,13 @@ A local web application for simulating and managing investment rounds, cap table
 - **Data Persistence**: All changes are automatically saved to `localStorage`.
 
 ### User Interface
-- **Dashboard View**: Split view with Round Editor panel and Cap Table visualization.
+- **Desktop Dashboard**: Split view with Round Editor panel and Cap Table visualization.
+- **Mobile View-Only Mode**: Responsive mobile interface (<768px) with:
+  - Login/logout support with password authentication
+  - Simulation selector for authenticated users
+  - Shared link support (`?id=xxx`) for read-only access
+  - Tab navigation between rounds and investors
+  - Expandable round cards with detailed investment breakdowns
 - **Interactive**: Drag-and-drop ordering (future), inline editing for amounts and names.
 - **Localization**: Full Korean language support for all UI elements and investment terms.
 
@@ -39,5 +45,7 @@ A local web application for simulating and managing investment rounds, cap table
 - [x] Core Logic & Calculation
 - [x] UI Implementation & Polish
 - [x] Secondary Transaction Support
+- [x] Mobile View-Only Mode
+- [x] Authentication & Shared Links
 - [ ] Export to Excel/PDF (Planned)
 - [ ] Option Pool Management (Planned)
