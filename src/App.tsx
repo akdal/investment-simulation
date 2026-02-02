@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Round, Investor, Simulation, Shareholding, InvestorGroup, Investment } from './types';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
-import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, LayoutGrid, Layers, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, PanelLeftClose, PanelLeft, ChevronUp, ChevronDown, X, LayoutGrid, Layers, BarChart3, Share2, Loader2 } from 'lucide-react';
 import { RoundEditor } from './components/RoundEditor';
 import { RoundTable } from './components/RoundTable';
 import { ChartPanel } from './components/ChartPanel';
@@ -37,6 +37,9 @@ function App() {
     const saved = localStorage.getItem(VIEW_MODE_KEY);
     return saved !== 'detailed';
   });
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isLoadingShared, setIsLoadingShared] = useState(false);
   const isInitialized = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -44,27 +47,68 @@ function App() {
   const selectedRound = currentSim?.rounds.find(r => r.id === selectedRoundId) || null;
   const selectedRoundIndex = currentSim?.rounds.findIndex(r => r.id === selectedRoundId) ?? -1;
 
-  // localStorage에서 데이터 로드
+  // URL 파라미터에서 공유된 시뮬레이션 로드 또는 localStorage에서 로드
   useEffect(() => {
-    const savedSimulations = localStorage.getItem(STORAGE_KEY);
-    const savedCurrentId = localStorage.getItem(CURRENT_SIM_KEY);
+    const loadData = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sharedId = urlParams.get('id');
 
-    if (savedSimulations) {
-      const parsed = JSON.parse(savedSimulations) as Simulation[];
-      setSimulations(parsed);
-
-      if (savedCurrentId && parsed.some(s => s.id === savedCurrentId)) {
-        setCurrentSimId(savedCurrentId);
-      } else if (parsed.length > 0) {
-        setCurrentSimId(parsed[0].id);
+      if (sharedId) {
+        // 공유 링크로 접속한 경우
+        setIsLoadingShared(true);
+        try {
+          const response = await fetch(`/api/sim/${sharedId}`);
+          if (response.ok) {
+            const { simulation } = await response.json();
+            // 공유된 시뮬레이션을 새 ID로 저장 (충돌 방지)
+            const importedSim: Simulation = {
+              ...simulation,
+              id: crypto.randomUUID(),
+              name: `${simulation.name} (공유됨)`,
+            };
+            setSimulations([importedSim]);
+            setCurrentSimId(importedSim.id);
+            // URL에서 id 파라미터 제거
+            window.history.replaceState({}, '', window.location.pathname);
+          } else {
+            alert('공유된 시뮬레이션을 찾을 수 없습니다.');
+            loadFromLocalStorage();
+          }
+        } catch (error) {
+          console.error('Failed to load shared simulation:', error);
+          alert('공유된 시뮬레이션을 불러오는데 실패했습니다.');
+          loadFromLocalStorage();
+        } finally {
+          setIsLoadingShared(false);
+        }
+      } else {
+        loadFromLocalStorage();
       }
-    } else {
-      const defaultSim = createDefaultSimulation('시뮬레이션 1');
-      setSimulations([defaultSim]);
-      setCurrentSimId(defaultSim.id);
-    }
 
-    isInitialized.current = true;
+      isInitialized.current = true;
+    };
+
+    const loadFromLocalStorage = () => {
+      const savedSimulations = localStorage.getItem(STORAGE_KEY);
+      const savedCurrentId = localStorage.getItem(CURRENT_SIM_KEY);
+
+      if (savedSimulations) {
+        const parsed = JSON.parse(savedSimulations) as Simulation[];
+        setSimulations(parsed);
+
+        if (savedCurrentId && parsed.some(s => s.id === savedCurrentId)) {
+          setCurrentSimId(savedCurrentId);
+        } else if (parsed.length > 0) {
+          setCurrentSimId(parsed[0].id);
+        }
+      } else {
+        const defaultSim = createDefaultSimulation('시뮬레이션 1');
+        setSimulations([defaultSim]);
+        setCurrentSimId(defaultSim.id);
+      }
+    };
+
+    loadData();
   }, []);
 
   // 뷰 모드 저장
@@ -106,6 +150,37 @@ function App() {
     }
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus(null), 2000);
+  };
+
+  // 공유 링크 생성
+  const handleShare = async () => {
+    if (!currentSim) return;
+
+    setIsSharing(true);
+    setShareUrl(null);
+
+    try {
+      const response = await fetch('/api/sim/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ simulation: currentSim }),
+      });
+
+      if (response.ok) {
+        const { id } = await response.json();
+        const url = `${window.location.origin}?id=${id}`;
+        setShareUrl(url);
+        // 클립보드에 복사
+        await navigator.clipboard.writeText(url);
+      } else {
+        alert('공유 링크 생성에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to create share link:', error);
+      alert('공유 링크 생성에 실패했습니다.');
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   // 데이터 내보내기
@@ -430,6 +505,16 @@ function App() {
     return Math.abs(groupTotalPercentage - 100) > 0.01;
   })();
 
+  // 공유 링크 로딩 중
+  if (isLoadingShared) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <p className="text-lg">공유된 시뮬레이션을 불러오는 중...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-slate-50 font-sans text-slate-900">
       {/* 상단 바 */}
@@ -489,6 +574,56 @@ function App() {
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
               차트 분석
             </button>
+
+            <div className="h-6 w-px bg-slate-700" />
+
+            {/* 공유 링크 버튼 */}
+            <div className="relative">
+              <button
+                onClick={handleShare}
+                disabled={isSharing || !currentSim}
+                className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${
+                  shareUrl
+                    ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30'
+                    : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'
+                } disabled:opacity-50`}
+              >
+                {isSharing ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : shareUrl ? (
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
+                ) : (
+                  <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {shareUrl ? '링크 복사됨!' : '공유 링크'}
+              </button>
+              {shareUrl && (
+                <div className="absolute top-full right-0 mt-2 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 min-w-[280px]">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={shareUrl}
+                      readOnly
+                      className="flex-1 px-2 py-1 text-xs bg-slate-700 border border-slate-600 rounded text-slate-200"
+                    />
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(shareUrl);
+                      }}
+                      className="p-1.5 hover:bg-slate-700 rounded"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-slate-300" />
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShareUrl(null)}
+                    className="mt-2 w-full text-xs text-slate-400 hover:text-slate-200"
+                  >
+                    닫기
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="h-6 w-px bg-slate-700" />
 
