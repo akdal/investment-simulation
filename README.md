@@ -10,6 +10,7 @@ A local web application for simulating and managing investment rounds, cap table
 - **Investment Handling**: Support for primary issuance and secondary transactions (buying/selling existing shares).
 - **Multiple Simulations**: Create and switch between different scenarios to compare outcomes.
 - **Data Persistence**: All changes are automatically saved to `localStorage`.
+- **Export Options**: Export cap table as JSON or high-resolution PDF (A4 landscape).
 
 ### User Interface
 - **Desktop Dashboard**: Split view with Round Editor panel and Cap Table visualization.
@@ -47,5 +48,6 @@ A local web application for simulating and managing investment rounds, cap table
 - [x] Secondary Transaction Support
 - [x] Mobile View-Only Mode
 - [x] Authentication & Shared Links
-- [ ] Export to Excel/PDF (Planned)
+- [x] Export to PDF
+- [ ] Export to Excel (Planned)
 - [ ] Option Pool Management (Planned)
