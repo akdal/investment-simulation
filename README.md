@@ -14,6 +14,8 @@ A local web application for simulating and managing investment rounds, cap table
 
 ### User Interface
 - **Desktop Dashboard**: Split view with Round Editor panel and Cap Table visualization.
+  - **Compact Header Menu**: Icon-only buttons for export/import/save operations.
+  - **Display Settings**: Customizable view with toggles for investor and group sections.
 - **Mobile View-Only Mode**: Responsive mobile interface (<768px) with:
   - Login/logout support with password authentication
   - Simulation selector for authenticated users
