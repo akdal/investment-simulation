@@ -67,10 +67,11 @@ export function PdfExporter({ targetRef, filename = 'captable.pdf' }: PdfExporte
       title="PDF 파일로 내보내기"
     >
       {isExporting ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
       ) : (
-        <FileDown className="h-3.5 w-3.5" />
+        <FileDown className="h-3.5 w-3.5 mr-1" />
       )}
+      PDF
     </button>
   );
 }
