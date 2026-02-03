@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Investment Simulation is a React-based interactive web application for modeling startup funding rounds and cap tables. It's a client-side only application with localStorage persistence (no backend).
+Investment Simulation is a React-based interactive web application for modeling startup funding rounds and cap tables.
 
 ## Development Commands
 
@@ -20,32 +20,41 @@ npm run preview  # Preview production build locally
 - **React 19** with TypeScript (strict mode)
 - **Vite 7** for build tooling
 - **Tailwind CSS 4** for styling
+- **Upstash Redis** for data persistence
+- **Vercel** for deployment and serverless API
 - **lucide-react** for icons
-- **clsx + tailwind-merge** for className utilities
+
+## Data Persistence
+
+**IMPORTANT: Use Upstash Redis for ALL user data - NOT localStorage!**
+
+- User simulation data must be stored in Upstash Redis via API
+- localStorage should only be used for client-side preferences (display settings, etc.)
+- API endpoints are in `/api/` directory
+- Redis keys: `sim:{id}` for shared simulations, `user:{userId}:simulations` for user data
+
+### API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/auth/login` | Password authentication |
+| `POST /api/auth/verify` | Token verification |
+| `POST /api/sim/save` | Save simulation to Redis |
+| `GET /api/sim/[id]` | Load shared simulation from Redis |
 
 ## Architecture
-
-### State Management
-- Centralized state in `App.tsx` using React hooks (useState, useEffect)
-- Two main state objects: `rounds` and `investors`
-- Auto-persisted to localStorage on every change
-
-### Data Flow
-1. User modifies round/investor data in UI
-2. `calculateRoundMetrics()` computes share prices, new shares, post-money valuations
-3. `calculateCapTable()` aggregates all rounds into current shareholdings
-4. State saved to localStorage and UI re-renders
 
 ### Key Source Files
 
 | File | Purpose |
 |------|---------|
-| `src/App.tsx` | Main app component, state management, localStorage persistence |
-| `src/components/RoundColumn.tsx` | Individual funding round editor (valuation, investments) |
-| `src/lib/calc.ts` | Financial calculations (round metrics, cap table aggregation) |
-| `src/types.ts` | TypeScript type definitions for domain model |
-| `src/components/ui/` | Reusable UI primitives (Button, Card, Input, Label) |
-| `src/lib/utils.ts` | Utility functions (`cn` for className merging) |
+| `src/App.tsx` | Desktop app, state management |
+| `src/components/mobile/MobileApp.tsx` | Mobile view-only app |
+| `src/components/RoundTable.tsx` | Cap table display |
+| `src/lib/calc.ts` | Financial calculations |
+| `src/types.ts` | TypeScript type definitions |
+| `api/sim/save.ts` | Redis save API |
+| `api/sim/[id].ts` | Redis load API |
 
 ### Domain Model
 
@@ -53,22 +62,11 @@ npm run preview  # Preview production build locally
 Investor { id, name, type: 'FOUNDER' | 'INVESTOR' | 'EMPLOYEE' }
 Investment { id, investorId, amount, shares, isSecondary, sellerId? }
 Round { id, name, date, preMoneyValuation, postMoneyValuation, sharePrice, totalNewShares, investmentAmount, investments[] }
+Simulation { id, name, rounds[], investors[], investorGroups[], createdAt, updatedAt }
 ```
-
-- **Primary investments**: New share issuance (increases total shares)
-- **Secondary investments**: Share transfers between existing shareholders
-
-### Calculation Logic (`src/lib/calc.ts`)
-
-- `calculateRoundMetrics()`: Given pre-money valuation and existing shares, computes share price, new shares from investments, and post-money valuation
-- `calculateCapTable()`: Iterates through all rounds chronologically, tracks share transfers (primary and secondary), returns current shareholdings per investor
-
-## Data Persistence
-
-- Uses browser `localStorage` with keys: `rounds`, `investors`
-- No backend API - all data is client-side only
-- Default: Creates a "Founder" investor on first load
 
 ## Deployment
 
-Static site build outputs to `dist/`. Compatible with any static hosting (Vercel, Netlify, GitHub Pages, etc.).
+- **Platform**: Vercel
+- **API**: Vercel Serverless Functions (`/api/`)
+- **Database**: Upstash Redis (env vars: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)
