@@ -5,6 +5,8 @@ import { Plus, AlertCircle, ChevronRight } from 'lucide-react';
 interface DisplaySettings {
     showShares: boolean;
     showActivity: boolean;
+    showInvestorView: boolean;
+    showGroupView: boolean;
 }
 
 interface RoundTableProps {
@@ -26,7 +28,7 @@ export function RoundTable({
     onSelectRound,
     onAddRound,
     getCapTableAtRound,
-    displaySettings = { showShares: false, showActivity: true },
+    displaySettings = { showShares: false, showActivity: true, showInvestorView: true, showGroupView: true },
 }: RoundTableProps) {
     const fmt = (n: number) => n.toLocaleString();
 
@@ -216,7 +218,7 @@ export function RoundTable({
                             ) : (
                                 <th className="w-[40px] min-w-[40px] py-4 border-l border-slate-200"></th>
                             )}
-                            <th className="w-[120px] min-w-[120px] py-4 border-l border-slate-200 border-r border-slate-200 text-center">
+                            <th className="w-[130px] min-w-[130px] py-4 border-l border-slate-200 border-r border-slate-200 text-center">
                                 <div className="font-bold text-slate-900">요약</div>
                                 <div className="text-xs font-normal text-slate-400 mt-0.5">Summary</div>
                             </th>
@@ -286,7 +288,7 @@ export function RoundTable({
                             <td className="border-l border-slate-200 bg-white"></td>
                             <td className="py-1.5 px-3 text-right border-l border-slate-200 border-r border-slate-200 bg-white">
                                 <div className="flex flex-col items-end">
-                                    <div className="grid grid-cols-[18px_1fr] items-center gap-1.5 w-full">
+                                    <div className="grid grid-cols-[22px_1fr] items-center gap-1.5 w-full">
                                         <span className="text-[10px] text-slate-400 text-left">누적</span>
                                         <div className="justify-self-end">
                                             <span className="text-sm font-bold text-emerald-600">
@@ -369,21 +371,24 @@ export function RoundTable({
                     </thead>
 
                     <tbody>
-                        {/* 투자자 섹션 헤더 */}
-                        <tr>
-                            <td className="pt-4 pb-2 px-3 sticky left-0 bg-white z-10">
-                                <span className="text-xs text-slate-500 font-medium">투자자별 지분</span>
-                            </td>
-                            <td colSpan={rounds.length + 3}></td>
-                        </tr>
+                        {/* 투자자 섹션 */}
+                        {displaySettings.showInvestorView && (
+                            <>
+                                {/* 투자자 섹션 헤더 */}
+                                <tr>
+                                    <td className="pt-4 pb-2 px-3 sticky left-0 bg-white z-10">
+                                        <span className="text-xs text-slate-500 font-medium">투자자별 지분</span>
+                                    </td>
+                                    <td colSpan={rounds.length + 3}></td>
+                                </tr>
 
-                        {investorIds.length === 0 ? (
-                            <tr>
-                                <td colSpan={rounds.length + 4} className="text-center py-6 text-slate-400 text-xs">
-                                    라운드를 선택하고 투자자를 추가하세요.
-                                </td>
-                            </tr>
-                        ) : (
+                                {investorIds.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={rounds.length + 4} className="text-center py-6 text-slate-400 text-xs">
+                                            라운드를 선택하고 투자자를 추가하세요.
+                                        </td>
+                                    </tr>
+                                ) : (
                             (() => {
                                 // 각 라운드별 최대 주주 계산
                                 const maxShareholderByRound = rounds.map((_, roundIdx) => {
@@ -501,25 +506,25 @@ export function RoundTable({
                                             <td className="py-2 px-3 border-l border-slate-200 border-r border-slate-200 text-right align-top">
                                                 <div className="flex flex-col items-end gap-0 text-[10px] leading-4">
                                                     {summary.primaryInvestment > 0 && (
-                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-emerald-600">
+                                                        <div className="grid grid-cols-[22px_1fr] items-center w-full text-emerald-600">
                                                             <span className="text-left">투자</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(summary.primaryInvestment)}</span>
                                                         </div>
                                                     )}
                                                     {summary.secondaryBuy > 0 && (
-                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-amber-600">
+                                                        <div className="grid grid-cols-[22px_1fr] items-center w-full text-amber-600">
                                                             <span className="text-left">매수</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(summary.secondaryBuy)}</span>
                                                         </div>
                                                     )}
                                                     {summary.secondarySell > 0 && (
-                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-violet-600">
+                                                        <div className="grid grid-cols-[22px_1fr] items-center w-full text-violet-600">
                                                             <span className="text-left">매도</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(summary.secondarySell)}</span>
                                                         </div>
                                                     )}
                                                     {summary.currentValue > 0 && (
-                                                        <div className="grid grid-cols-[18px_1fr] items-center w-full text-slate-600">
+                                                        <div className="grid grid-cols-[22px_1fr] items-center w-full text-slate-600">
                                                             <span className="text-left">보유</span>
                                                             <span className="font-medium justify-self-end">{fmtMoney(Math.round(summary.currentValue))}</span>
                                                         </div>
@@ -531,10 +536,12 @@ export function RoundTable({
                                     );
                                 });
                             })()
+                                )}
+                            </>
                         )}
 
                         {/* 그룹별 지분 요약 */}
-                        {investorGroups.length > 0 && investorIds.length > 0 && (
+                        {displaySettings.showGroupView && investorGroups.length > 0 && investorIds.length > 0 && (
                             (() => {
                                 // 각 그룹의 투자자 ID 맵
                                 const groupInvestorMap = new Map<string, string[]>();
@@ -712,25 +719,25 @@ export function RoundTable({
                                                     <td className="py-2 px-3 border-l border-slate-200 border-r border-slate-200 text-right align-top">
                                                         <div className="flex flex-col items-end gap-0 text-[10px] leading-4">
                                                             {groupSummary.primaryInvestment > 0 && (
-                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-emerald-600">
+                                                                <div className="grid grid-cols-[22px_1fr] items-center w-full text-emerald-600">
                                                                     <span className="text-left">투자</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(groupSummary.primaryInvestment)}</span>
                                                                 </div>
                                                             )}
                                                             {groupSummary.secondaryBuy > 0 && (
-                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-amber-600">
+                                                                <div className="grid grid-cols-[22px_1fr] items-center w-full text-amber-600">
                                                                     <span className="text-left">매수</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(groupSummary.secondaryBuy)}</span>
                                                                 </div>
                                                             )}
                                                             {groupSummary.secondarySell > 0 && (
-                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-violet-600">
+                                                                <div className="grid grid-cols-[22px_1fr] items-center w-full text-violet-600">
                                                                     <span className="text-left">매도</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(groupSummary.secondarySell)}</span>
                                                                 </div>
                                                             )}
                                                             {groupSummary.currentValue > 0 && (
-                                                                <div className="grid grid-cols-[18px_1fr] items-center w-full text-slate-600">
+                                                                <div className="grid grid-cols-[22px_1fr] items-center w-full text-slate-600">
                                                                     <span className="text-left">보유</span>
                                                                     <span className="font-medium justify-self-end">{fmtMoney(Math.round(groupSummary.currentValue))}</span>
                                                                 </div>

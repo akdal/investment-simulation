@@ -63,15 +63,14 @@ export function PdfExporter({ targetRef, filename = 'captable.pdf' }: PdfExporte
     <button
       onClick={handleExport}
       disabled={isExporting}
-      className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors disabled:opacity-50"
+      className="h-8 px-2.5 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors disabled:opacity-50"
       title="PDF 파일로 내보내기"
     >
       {isExporting ? (
-        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
       ) : (
-        <FileDown className="h-3.5 w-3.5 mr-1.5" />
+        <FileDown className="h-3.5 w-3.5" />
       )}
-      PDF
     </button>
   );
 }

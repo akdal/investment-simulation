@@ -19,11 +19,15 @@ const LOCAL_CURRENT_SIM_KEY = 'current-simulation-id';
 interface DisplaySettings {
   showShares: boolean;
   showActivity: boolean;
+  showInvestorView: boolean;
+  showGroupView: boolean;
 }
 
 const defaultDisplaySettings: DisplaySettings = {
   showShares: false,
   showActivity: true,
+  showInvestorView: true,
+  showGroupView: true,
 };
 
 function createDefaultSimulation(name: string = '새 시뮬레이션'): Simulation {
@@ -758,11 +762,30 @@ function DesktopApp() {
                 }`}
               >
                 <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-                보기 설정
+                보기
               </button>
               {isDisplaySettingsOpen && (
                 <div className="absolute top-full left-0 mt-2 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 min-w-[180px]">
                   <div className="space-y-1">
+                    <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700/50 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={displaySettings.showInvestorView}
+                        onChange={(e) => setDisplaySettings(s => ({ ...s, showInvestorView: e.target.checked }))}
+                        className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-slate-200">투자자별 지분</span>
+                    </label>
+                    <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700/50 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={displaySettings.showGroupView}
+                        onChange={(e) => setDisplaySettings(s => ({ ...s, showGroupView: e.target.checked }))}
+                        className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm text-slate-200">그룹별 지분</span>
+                    </label>
+                    <div className="border-t border-slate-600 my-1.5" />
                     <label className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-700/50 rounded cursor-pointer">
                       <input
                         type="checkbox"
@@ -799,7 +822,7 @@ function DesktopApp() {
                 className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isGroupPanelOpen ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
               >
                 <Users className="h-3.5 w-3.5 mr-1.5" />
-                투자자 관리
+                투자자
                 {isGroupIncomplete && (
                   <span className="ml-1.5 w-2 h-2 rounded-full bg-amber-500" />
                 )}
@@ -811,7 +834,7 @@ function DesktopApp() {
               className={`h-8 px-3 text-sm rounded-md flex items-center transition-colors ${isChartPanelOpen ? 'bg-violet-600/20 text-violet-400 border border-violet-500/30' : 'text-slate-300 hover:bg-slate-700/50 border border-transparent'}`}
             >
               <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-              차트 분석
+              차트
             </button>
 
             {/* 공유/내보내기/가져오기/저장 - 로그인 시에만 */}
@@ -837,7 +860,7 @@ function DesktopApp() {
                     ) : (
                       <Share2 className="h-3.5 w-3.5 mr-1.5" />
                     )}
-                    {shareUrl ? '링크 복사됨!' : '공유 링크'}
+                    {shareUrl ? '복사됨' : '공유'}
                   </button>
                   {shareUrl && (
                     <div className="absolute top-full right-0 mt-2 p-2 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 min-w-[280px]">
@@ -869,24 +892,21 @@ function DesktopApp() {
 
                 <div className="h-6 w-px bg-slate-700" />
 
-                <button onClick={handleExport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일로 내보내기">
-                  <Download className="h-3.5 w-3.5 mr-1.5" />
-                  내보내기
+                <button onClick={handleExport} className="h-8 px-2.5 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일로 내보내기">
+                  <Download className="h-3.5 w-3.5" />
                 </button>
                 <PdfExporter
                   targetRef={tableRef}
                   filename={`${currentSim?.name || 'captable'}-${new Date().toISOString().slice(0, 10)}.pdf`}
                 />
-                <button onClick={handleImport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일 가져오기">
-                  <Upload className="h-3.5 w-3.5 mr-1.5" />
-                  가져오기
+                <button onClick={handleImport} className="h-8 px-2.5 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일 가져오기">
+                  <Upload className="h-3.5 w-3.5" />
                 </button>
 
                 <div className="h-6 w-px bg-slate-700" />
 
-                <button onClick={handleManualSave} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors">
-                  <Save className="h-3.5 w-3.5 mr-1.5" />
-                  저장
+                <button onClick={handleManualSave} className="h-8 px-2.5 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="저장">
+                  <Save className="h-3.5 w-3.5" />
                 </button>
 
                 <div className="flex items-center justify-end text-xs w-[70px]">
