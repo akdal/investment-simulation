@@ -958,7 +958,7 @@ function DesktopApp() {
       )}
 
       {/* 메인 컨텐츠 */}
-      <div className="flex-1 flex overflow-auto">
+      <div className="flex-1 flex overflow-hidden">
         {/* 왼쪽: 시뮬레이션 패널 - 로그인 시에만 */}
         {isSimPanelOpen && !isViewOnly && (
           <SimulationPanel
@@ -976,8 +976,8 @@ function DesktopApp() {
         )}
 
         {/* 중앙: 라운드 테이블 */}
-        <div className="flex-1 overflow-auto bg-white">
-          <div ref={tableRef}>
+        <div className="flex-1 overflow-hidden bg-white">
+          <div ref={tableRef} className="h-full">
             <RoundTable
               rounds={rounds}
               investors={investors}
