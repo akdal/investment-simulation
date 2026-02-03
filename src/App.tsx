@@ -958,7 +958,7 @@ function DesktopApp() {
       )}
 
       {/* 메인 컨텐츠 */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-auto">
         {/* 왼쪽: 시뮬레이션 패널 - 로그인 시에만 */}
         {isSimPanelOpen && !isViewOnly && (
           <SimulationPanel
