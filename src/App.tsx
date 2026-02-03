@@ -6,14 +6,15 @@ import { Plus, Trash2, Save, Check, Copy, Users, Pencil, Download, Upload, Panel
 import { RoundEditor } from './components/RoundEditor';
 import { RoundTable } from './components/RoundTable';
 import { ChartPanel } from './components/ChartPanel';
+import { PdfExporter } from './components/PdfExporter';
 import { calculateCapTable } from './lib/calc';
 import { useMobileDetection } from './hooks/useMobileDetection';
 import { MobileApp } from './components/mobile';
 
-const STORAGE_KEY = 'investment-simulations';
-const CURRENT_SIM_KEY = 'current-simulation-id';
 const DISPLAY_SETTINGS_KEY = 'investmentSimDisplaySettings';
 const AUTH_TOKEN_KEY = 'investmentSimAuthToken';
+const LOCAL_STORAGE_KEY = 'investment-simulations';
+const LOCAL_CURRENT_SIM_KEY = 'current-simulation-id';
 
 interface DisplaySettings {
   showShares: boolean;
@@ -77,6 +78,7 @@ function DesktopApp() {
   const [isViewOnly, setIsViewOnly] = useState(false);
   const isInitialized = useRef(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   // URL에 공유 링크가 있는지 확인
   const hasSharedId = new URLSearchParams(window.location.search).has('id');
@@ -142,8 +144,10 @@ function DesktopApp() {
   const selectedRound = currentSim?.rounds.find(r => r.id === selectedRoundId) || null;
   const selectedRoundIndex = currentSim?.rounds.findIndex(r => r.id === selectedRoundId) ?? -1;
 
-  // URL 파라미터에서 공유된 시뮬레이션 로드 또는 localStorage에서 로드
+  // URL 파라미터에서 공유된 시뮬레이션 로드 또는 Redis에서 로드
   useEffect(() => {
+    if (isCheckingAuth) return; // 인증 확인 완료 대기
+
     const loadData = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const sharedId = urlParams.get('id');
@@ -164,58 +168,104 @@ function DesktopApp() {
             };
             setSimulations([importedSim]);
             setCurrentSimId(importedSim.id);
-            // URL은 유지 (읽기 전용 모드 유지를 위해)
+            isInitialized.current = true;
           } else {
             alert('공유된 시뮬레이션을 찾을 수 없습니다.');
             setIsViewOnly(false);
-            loadFromLocalStorage();
+            await loadFromRedis();
           }
         } catch (error) {
           console.error('Failed to load shared simulation:', error);
           alert('공유된 시뮬레이션을 불러오는데 실패했습니다.');
           setIsViewOnly(false);
-          loadFromLocalStorage();
+          await loadFromRedis();
         } finally {
           setIsLoadingShared(false);
         }
-      } else {
-        loadFromLocalStorage();
+      } else if (isAuthenticated) {
+        await loadFromRedis();
       }
-
-      isInitialized.current = true;
     };
 
-    const loadFromLocalStorage = () => {
-      const savedSimulations = localStorage.getItem(STORAGE_KEY);
-      const savedCurrentId = localStorage.getItem(CURRENT_SIM_KEY);
+    const loadFromRedis = async () => {
+      setIsLoadingShared(true);
+      try {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        const response = await fetch('/api/user/simulations', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-      if (savedSimulations) {
-        const parsed = JSON.parse(savedSimulations) as Simulation[];
-        setSimulations(parsed);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.simulations && data.simulations.length > 0) {
+            setSimulations(data.simulations);
+            setCurrentSimId(data.currentSimId || data.simulations[0].id);
+          } else {
+            // Redis에 데이터 없으면 localStorage에서 마이그레이션 시도
+            const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const localCurrentId = localStorage.getItem(LOCAL_CURRENT_SIM_KEY);
 
-        if (savedCurrentId && parsed.some(s => s.id === savedCurrentId)) {
-          setCurrentSimId(savedCurrentId);
-        } else if (parsed.length > 0) {
-          setCurrentSimId(parsed[0].id);
+            if (localData) {
+              const parsed = JSON.parse(localData) as Simulation[];
+              if (parsed.length > 0) {
+                console.log('Migrating localStorage data to Redis...');
+                setSimulations(parsed);
+                const simId = localCurrentId && parsed.some(s => s.id === localCurrentId)
+                  ? localCurrentId
+                  : parsed[0].id;
+                setCurrentSimId(simId);
+
+                // Redis에 저장
+                await fetch('/api/user/simulations', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({ simulations: parsed, currentSimId: simId })
+                });
+                console.log('Migration complete!');
+              } else {
+                const defaultSim = createDefaultSimulation('시뮬레이션 1');
+                setSimulations([defaultSim]);
+                setCurrentSimId(defaultSim.id);
+              }
+            } else {
+              const defaultSim = createDefaultSimulation('시뮬레이션 1');
+              setSimulations([defaultSim]);
+              setCurrentSimId(defaultSim.id);
+            }
+          }
+        } else {
+          const defaultSim = createDefaultSimulation('시뮬레이션 1');
+          setSimulations([defaultSim]);
+          setCurrentSimId(defaultSim.id);
         }
-      } else {
+      } catch (error) {
+        console.error('Failed to load from Redis:', error);
         const defaultSim = createDefaultSimulation('시뮬레이션 1');
         setSimulations([defaultSim]);
         setCurrentSimId(defaultSim.id);
+      } finally {
+        setIsLoadingShared(false);
+        isInitialized.current = true;
       }
     };
 
     loadData();
-  }, []);
+  }, [isCheckingAuth, isAuthenticated]);
 
   // 보기 설정 저장
   useEffect(() => {
     localStorage.setItem(DISPLAY_SETTINGS_KEY, JSON.stringify(displaySettings));
   }, [displaySettings]);
 
-  // 자동 저장
+  // 자동 저장 (Redis)
   useEffect(() => {
     if (!isInitialized.current) return;
+    if (!isAuthenticated || isViewOnly) return;
 
     setSaveStatus('saving');
 
@@ -223,30 +273,52 @@ function DesktopApp() {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    saveTimeoutRef.current = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(simulations));
-      if (currentSimId) {
-        localStorage.setItem(CURRENT_SIM_KEY, currentSimId);
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        await fetch('/api/user/simulations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ simulations, currentSimId })
+        });
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 2000);
+      } catch (error) {
+        console.error('Failed to save to Redis:', error);
+        setSaveStatus(null);
       }
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(null), 2000);
-    }, 300);
+    }, 500);
 
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [simulations, currentSimId]);
+  }, [simulations, currentSimId, isAuthenticated, isViewOnly]);
 
-  const handleManualSave = () => {
+  const handleManualSave = async () => {
+    if (!isAuthenticated || isViewOnly) return;
+
     setSaveStatus('saving');
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(simulations));
-    if (currentSimId) {
-      localStorage.setItem(CURRENT_SIM_KEY, currentSimId);
+    try {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      await fetch('/api/user/simulations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ simulations, currentSimId })
+      });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch (error) {
+      console.error('Failed to save to Redis:', error);
+      setSaveStatus(null);
     }
-    setSaveStatus('saved');
-    setTimeout(() => setSaveStatus(null), 2000);
   };
 
   // 공유 링크 생성
@@ -801,6 +873,10 @@ function DesktopApp() {
                   <Download className="h-3.5 w-3.5 mr-1.5" />
                   내보내기
                 </button>
+                <PdfExporter
+                  targetRef={tableRef}
+                  filename={`${currentSim?.name || 'captable'}-${new Date().toISOString().slice(0, 10)}.pdf`}
+                />
                 <button onClick={handleImport} className="h-8 px-3 text-sm text-slate-300 hover:bg-slate-700/50 rounded-md flex items-center transition-colors" title="JSON 파일 가져오기">
                   <Upload className="h-3.5 w-3.5 mr-1.5" />
                   가져오기
@@ -877,19 +953,21 @@ function DesktopApp() {
 
         {/* 중앙: 라운드 테이블 */}
         <div className="flex-1 overflow-hidden bg-white">
-          <RoundTable
-            rounds={rounds}
-            investors={investors}
-            investorGroups={investorGroups}
-            selectedRoundId={selectedRoundId}
-            onSelectRound={(roundId) => {
-              setSelectedRoundId(roundId);
-              setIsGroupPanelOpen(false); // 라운드 선택 시 그룹 패널 닫기
-            }}
-            onAddRound={canEdit ? addRound : undefined}
-            getCapTableAtRound={getCapTableAtRound}
-            displaySettings={displaySettings}
-          />
+          <div ref={tableRef}>
+            <RoundTable
+              rounds={rounds}
+              investors={investors}
+              investorGroups={investorGroups}
+              selectedRoundId={selectedRoundId}
+              onSelectRound={(roundId) => {
+                setSelectedRoundId(roundId);
+                setIsGroupPanelOpen(false); // 라운드 선택 시 그룹 패널 닫기
+              }}
+              onAddRound={canEdit ? addRound : undefined}
+              getCapTableAtRound={getCapTableAtRound}
+              displaySettings={displaySettings}
+            />
+          </div>
         </div>
 
         {/* 오른쪽: 라운드 에디터 또는 그룹 관리 패널 */}
