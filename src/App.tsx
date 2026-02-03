@@ -976,7 +976,7 @@ function DesktopApp() {
         )}
 
         {/* 중앙: 라운드 테이블 */}
-        <div className="flex-1 overflow-hidden bg-white">
+        <div className="flex-1 overflow-auto bg-white">
           <div ref={tableRef}>
             <RoundTable
               rounds={rounds}
