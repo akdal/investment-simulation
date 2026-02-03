@@ -7,8 +7,6 @@ import { MobileSimSelector } from './MobileSimSelector';
 import { MobileCapTable } from './MobileCapTable';
 import { Loader2 } from 'lucide-react';
 
-const STORAGE_KEY = 'investment-simulations';
-const CURRENT_SIM_KEY = 'current-simulation-id';
 const AUTH_TOKEN_KEY = 'investmentSimAuthToken';
 
 export function MobileApp() {
@@ -17,7 +15,7 @@ export function MobileApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isViewOnly, setIsViewOnly] = useState(false);
-  const [isLoadingShared, setIsLoadingShared] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const isInitialized = useRef(false);
 
   // URL에 공유 링크가 있는지 확인
@@ -55,15 +53,18 @@ export function MobileApp() {
     verifyToken();
   }, []);
 
-  // 데이터 로드
+  // 데이터 로드 - 인증 후 또는 공유 링크
   useEffect(() => {
+    if (isCheckingAuth) return; // 인증 확인 중이면 대기
+    if (isInitialized.current) return;
+
     const loadData = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const sharedId = urlParams.get('id');
 
       if (sharedId) {
         // 공유 링크로 접속한 경우 - 읽기 전용 모드
-        setIsLoadingShared(true);
+        setIsLoading(true);
         setIsViewOnly(true);
         try {
           const response = await fetch(`/api/sim/${sharedId}`);
@@ -79,41 +80,48 @@ export function MobileApp() {
           } else {
             alert('공유된 시뮬레이션을 찾을 수 없습니다.');
             setIsViewOnly(false);
-            loadFromLocalStorage();
           }
         } catch (error) {
           console.error('Failed to load shared simulation:', error);
           alert('공유된 시뮬레이션을 불러오는데 실패했습니다.');
           setIsViewOnly(false);
-          loadFromLocalStorage();
         } finally {
-          setIsLoadingShared(false);
+          setIsLoading(false);
         }
-      } else {
-        loadFromLocalStorage();
+      } else if (isAuthenticated) {
+        // 로그인한 경우 - Redis에서 사용자 데이터 로드
+        await loadFromRedis();
       }
 
       isInitialized.current = true;
     };
 
-    const loadFromLocalStorage = () => {
-      const savedSimulations = localStorage.getItem(STORAGE_KEY);
-      const savedCurrentId = localStorage.getItem(CURRENT_SIM_KEY);
+    loadData();
+  }, [isCheckingAuth, isAuthenticated]);
 
-      if (savedSimulations) {
-        const parsed = JSON.parse(savedSimulations) as Simulation[];
-        setSimulations(parsed);
+  const loadFromRedis = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const response = await fetch('/api/user/simulations', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-        if (savedCurrentId && parsed.some(s => s.id === savedCurrentId)) {
-          setCurrentSimId(savedCurrentId);
-        } else if (parsed.length > 0) {
-          setCurrentSimId(parsed[0].id);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.simulations && data.simulations.length > 0) {
+          setSimulations(data.simulations);
+          setCurrentSimId(data.currentSimId || data.simulations[0].id);
         }
       }
-    };
-
-    loadData();
-  }, []);
+    } catch (error) {
+      console.error('Failed to load simulations from Redis:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (password: string): Promise<boolean> => {
     try {
@@ -127,6 +135,8 @@ export function MobileApp() {
         const { token } = await response.json();
         localStorage.setItem(AUTH_TOKEN_KEY, token);
         setIsAuthenticated(true);
+        // 로그인 후 데이터 로드
+        isInitialized.current = false;
         return true;
       }
       return false;
@@ -138,11 +148,13 @@ export function MobileApp() {
   const handleLogout = () => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     setIsAuthenticated(false);
+    setSimulations([]);
+    setCurrentSimId(null);
+    isInitialized.current = false;
   };
 
   const handleSelectSimulation = (simId: string) => {
     setCurrentSimId(simId);
-    localStorage.setItem(CURRENT_SIM_KEY, simId);
   };
 
   // 현재 시뮬레이션
@@ -158,22 +170,12 @@ export function MobileApp() {
     return calculateCapTable(roundsUpToIndex, currentSim.investors);
   };
 
-  // 인증 확인 중
-  if (isCheckingAuth) {
+  // 인증 확인 중 또는 데이터 로딩 중
+  if (isCheckingAuth || isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p className="text-lg">로딩 중...</p>
-      </div>
-    );
-  }
-
-  // 공유 링크 로딩 중
-  if (isLoadingShared) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
-        <Loader2 className="h-8 w-8 animate-spin mb-4" />
-        <p className="text-lg">공유된 시뮬레이션을 불러오는 중...</p>
+        <p className="text-lg">{isCheckingAuth ? '로딩 중...' : '데이터를 불러오는 중...'}</p>
       </div>
     );
   }
